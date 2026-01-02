@@ -8,6 +8,15 @@ import com.intellij.psi.PsiManager
 import me.geckotv.ezcordutils.settings.EzCordSettings
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLMapping
+import org.jetbrains.yaml.psi.YAMLKeyValue
+
+/**
+ * Contains information about a language key location.
+ */
+data class LanguageKeyLocation(
+    val file: VirtualFile,
+    val lineNumber: Int
+)
 
 /**
  * Resolves language keys to their translated text values.
@@ -54,6 +63,69 @@ class LanguageResolver(private val project: Project) {
     }
 
     /**
+     * Gets the location of a language key in the YAML file.
+     *
+     * @param key The language key in dot notation.
+     * @return The location (file and line number), or null if not found.
+     */
+    fun getKeyLocation(key: String): LanguageKeyLocation? {
+        val settings = EzCordSettings.getInstance(project)
+        val languageFolder = settings.state.languageFolderPath
+        val language = settings.state.defaultLanguage
+
+        val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder) ?: return null
+
+        val langFile = langDir.findChild("$language.yml")
+            ?: langDir.findChild("$language.yaml")
+
+        if (langFile == null) {
+            return null
+        }
+
+        return getKeyLocationFromFile(langFile, key)
+    }
+
+    /**
+     * Gets the location of a key from a YAML file.
+     */
+    private fun getKeyLocationFromFile(file: VirtualFile, key: String): LanguageKeyLocation? {
+        try {
+            val psiFile = PsiManager.getInstance(project).findFile(file) as? YAMLFile ?: return null
+            val documents = psiFile.documents
+            if (documents.isEmpty()) return null
+
+            val topMapping = documents[0].topLevelValue as? YAMLMapping ?: return null
+
+            val keyValue = findNestedKeyValue(topMapping, key.split("."))
+            if (keyValue != null) {
+                val document = psiFile.viewProvider.document ?: return null
+                val lineNumber = document.getLineNumber(keyValue.textRange.startOffset)
+                return LanguageKeyLocation(file, lineNumber)
+            }
+
+            return null
+        } catch (_: Exception) {
+            return null
+        }
+    }
+
+    /**
+     * Finds the YAMLKeyValue element for a nested key.
+     */
+    private fun findNestedKeyValue(mapping: YAMLMapping, keyParts: List<String>): YAMLKeyValue? {
+        if (keyParts.isEmpty()) return null
+
+        val currentKey = keyParts.first()
+        val keyValue = mapping.getKeyValueByKey(currentKey) ?: return null
+
+        return when {
+            keyParts.size == 1 -> keyValue
+            keyValue.value is YAMLMapping -> findNestedKeyValue(keyValue.value as YAMLMapping, keyParts.drop(1))
+            else -> null
+        }
+    }
+
+    /**
      * Resolves a key from a YAML file.
      */
     private fun resolveKeyFromFile(file: VirtualFile, key: String): String? {
@@ -94,8 +166,6 @@ class LanguageResolver(private val project: Project) {
      * @return A map of language code to translated text.
      */
     fun resolveAllLanguages(key: String): Map<String, String> {
-        println("[DEBUG LanguageResolver] Resolving key in all languages: '$key'")
-
         val settings = EzCordSettings.getInstance(project)
         val languageFolder = settings.state.languageFolderPath
 
@@ -112,12 +182,10 @@ class LanguageResolver(private val project: Project) {
 
                 if (translation != null) {
                     result[langCode] = translation
-                    println("[DEBUG LanguageResolver] Found translation in $langCode: $translation")
                 }
             }
         }
 
-        println("[DEBUG LanguageResolver] Total translations found: ${result.size}")
         return result
     }
 
@@ -127,15 +195,12 @@ class LanguageResolver(private val project: Project) {
      * @return A set of all language keys in dot notation.
      */
     fun getAllKeys(): Set<String> {
-        println("[DEBUG LanguageResolver] Getting all available keys")
-
         val settings = EzCordSettings.getInstance(project)
         val languageFolder = settings.state.languageFolderPath
 
         val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder)
 
         if (langDir == null) {
-            println("[DEBUG LanguageResolver] ❌ Language folder not found: '$languageFolder'")
             return emptySet()
         }
 
@@ -146,11 +211,9 @@ class LanguageResolver(private val project: Project) {
             if (file.extension == "yml" || file.extension == "yaml") {
                 val keys = extractKeysFromFile(file)
                 allKeys.addAll(keys)
-                println("[DEBUG LanguageResolver] Found ${keys.size} keys in ${file.name}")
             }
         }
 
-        println("[DEBUG LanguageResolver] Total unique keys: ${allKeys.size}")
         return allKeys
     }
 

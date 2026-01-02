@@ -28,56 +28,37 @@ class LanguageDocumentationProvider : AbstractDocumentationProvider() {
         }
 
         val resolver = LanguageResolver(pyString.project)
-        val filePrefix = LanguageUtils().getFilePrefix(pyString.containingFile.name)
+        val utils = LanguageUtils()
+        val filePrefix = utils.getFilePrefix(pyString.containingFile.name)
 
-        // Extract all language keys from strings with placeholders like {container.title}
-        val keyPattern = Regex("""[{]([a-zA-Z0-9_.]+)[}]""")
-        val keyMatches = keyPattern.findAll(stringValue).toList()
+        // Use utility function to find all keys
+        val foundKeys = utils.findAllKeysInString(stringValue, filePrefix, resolver)
 
-        if (keyMatches.isNotEmpty()) {
-            // Multiple keys found in format {key1}\n{key2}
-            val translations = mutableMapOf<String, String>()
-
-            for (match in keyMatches) {
-                val key = match.groupValues[1]
-                var translatedText = resolver.resolve(key)
-                var finalKey = key
-
-                if (translatedText == null) {
-                    finalKey = "$filePrefix.$key"
-                    translatedText = resolver.resolve(finalKey)
-                }
-
-                if (translatedText != null) {
-                    translations[finalKey] = translatedText
-                }
-            }
-
-            if (translations.isEmpty()) {
-                return null
-            }
-
-            if (translations.size == 1) {
-                val (singleKey, singleTranslation) = translations.entries.first()
-                return buildDocumentation(singleKey, singleTranslation)
-            }
-
-            return buildMultiDocumentation(translations)
+        if (foundKeys.isEmpty()) {
+            return null
         }
 
-        var translatedText = resolver.resolve(stringValue)
-        var finalKey = stringValue
-
-        if (translatedText == null) {
-            finalKey = "$filePrefix.$stringValue"
-            translatedText = resolver.resolve(finalKey)
-            if (translatedText == null) {
-                return null
+        // Build translations map from found keys
+        val translations = mutableMapOf<String, String>()
+        for ((key, _) in foundKeys) {
+            val translatedText = resolver.resolve(key)
+            if (translatedText != null) {
+                translations[key] = translatedText
             }
         }
 
-        return buildDocumentation(finalKey, translatedText)
+        if (translations.isEmpty()) {
+            return null
+        }
+
+        if (translations.size == 1) {
+            val (singleKey, singleTranslation) = translations.entries.first()
+            return buildDocumentation(singleKey, singleTranslation)
+        }
+
+        return buildMultiDocumentation(translations)
     }
+
 
     override fun getCustomDocumentationElement(
         editor: Editor,

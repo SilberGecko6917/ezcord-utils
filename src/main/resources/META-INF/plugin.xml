@@ -49,6 +49,12 @@
             language="Python"
             implementationClass="me.geckotv.ezcordutils.language.LanguageDocumentationProvider"
             order="first"/>
+
+
+        <!-- Line marker for language keys -->
+        <codeInsight.lineMarkerProvider
+            language="Python"
+            implementationClass="me.geckotv.ezcordutils.language.LanguageKeyLineMarkerProvider"/>
     </extensions>
 
     <projectListeners>
