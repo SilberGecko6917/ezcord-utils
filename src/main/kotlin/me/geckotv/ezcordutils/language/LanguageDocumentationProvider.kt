@@ -38,6 +38,8 @@ class LanguageDocumentationProvider : AbstractDocumentationProvider() {
             return null
         }
 
+        if (!stringValue.contains('.')) return null
+
         val resolver = LanguageResolver(pyString.project)
         val utils = LanguageUtils()
         val filePrefix = utils.getFilePrefix(pyString.containingFile.name)

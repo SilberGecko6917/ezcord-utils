@@ -27,6 +27,8 @@ class LanguageKeyLineMarkerProvider : LineMarkerProvider {
         val stringValue = parent.stringValue.trim()
         if (stringValue.isBlank()) return null
 
+        if (!stringValue.contains('.')) return null
+
         val resolver = LanguageResolver(parent.project)
         val utils = LanguageUtils()
         val filePrefix = utils.getFilePrefix(parent.containingFile.name)
