@@ -54,18 +54,41 @@ class LanguageUtils {
         filePrefix: String?,
         resolver: LanguageResolver
     ): Pair<String, LanguageKeyLocation>? {
-        // Try direct resolution first
+        // Try direct resolution first - check in primary language
         var location = resolver.getKeyLocation(key)
         if (location != null) {
             return Pair(key, location)
         }
 
+        // If not found in primary language, check if it exists in ANY language
+        val allLanguages = resolver.resolveAllLanguages(key)
+
+        if (allLanguages.isNotEmpty()) {
+            // Key exists in at least one language, create a dummy location
+            val firstLangWithKey = resolver.getKeyLocationInAnyLanguage(key)
+            if (firstLangWithKey != null) {
+                return Pair(key, firstLangWithKey)
+            }
+        }
+
         // Try with file prefix
         if (filePrefix != null) {
             val fullKey = "$filePrefix.$key"
+
+            // Try primary language first
             location = resolver.getKeyLocation(fullKey)
             if (location != null) {
                 return Pair(fullKey, location)
+            }
+
+            // Try all languages
+            val allLanguagesWithPrefix = resolver.resolveAllLanguages(fullKey)
+
+            if (allLanguagesWithPrefix.isNotEmpty()) {
+                val firstLangWithKey = resolver.getKeyLocationInAnyLanguage(fullKey)
+                if (firstLangWithKey != null) {
+                    return Pair(fullKey, firstLangWithKey)
+                }
             }
         }
 
@@ -91,6 +114,7 @@ class LanguageUtils {
         // Check if string contains {key} pattern(s)
         val keyPattern = Regex("""[{]([a-zA-Z0-9_.]+)[}]""")
         val matches = keyPattern.findAll(stringValue).toList()
+
 
         if (matches.isNotEmpty()) {
             // Extract all keys from {key} format

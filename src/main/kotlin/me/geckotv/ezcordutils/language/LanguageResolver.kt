@@ -1,7 +1,6 @@
 package me.geckotv.ezcordutils.language
 
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
@@ -21,7 +20,7 @@ data class LanguageKeyLocation(
 /**
  * Resolves language keys to their translated text values.
  */
-class LanguageResolver(private val project: Project) {
+class LanguageResolver(val project: Project) {
 
     /**
      * Resolves a language key (e.g., "general.disabled") to its translated text.
@@ -30,36 +29,17 @@ class LanguageResolver(private val project: Project) {
      * @return The translated text, or null if not found.
      */
     fun resolve(key: String): String? {
-        println("[DEBUG LanguageResolver] Resolving key: '$key'")
-
         val settings = EzCordSettings.getInstance(project)
         val languageFolder = settings.state.languageFolderPath
         val language = settings.state.defaultLanguage
 
-        println("[DEBUG LanguageResolver] Language folder: '$languageFolder', Language: '$language'")
-
-        val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder)
-        println("[DEBUG LanguageResolver] Lang dir: ${langDir?.path}")
-
-        if (langDir == null) {
-            println("[DEBUG LanguageResolver] ❌ Language folder not found: '$languageFolder'")
-            return null
-        }
+        val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder) ?: return null
 
         val langFile = langDir.findChild("$language.yml")
-            ?: langDir.findChild("$language.yaml")
-
-        println("[DEBUG LanguageResolver] Lang file: ${langFile?.path}")
-
-        if (langFile == null) {
-            println("[DEBUG LanguageResolver] ❌ Language file not found: '$language.yml' or '$language.yaml'")
-            return null
-        }
+            ?: langDir.findChild("$language.yaml") ?: return null
 
         // Parse YAML and resolve the key
-        val result = resolveKeyFromFile(langFile, key)
-        println("[DEBUG LanguageResolver] Result for '$key': $result")
-        return result
+        return resolveKeyFromFile(langFile, key)
     }
 
     /**
@@ -83,6 +63,49 @@ class LanguageResolver(private val project: Project) {
         }
 
         return getKeyLocationFromFile(langFile, key)
+    }
+
+    /**
+     * Gets the location of a language key in any available language file.
+     * Tries to find the key in any language, preferring the configured fallback language if available.
+     *
+     * @param key The language key in dot notation.
+     * @return The location (file and line number), or null if not found in any language.
+     */
+    fun getKeyLocationInAnyLanguage(key: String): LanguageKeyLocation? {
+        val settings = EzCordSettings.getInstance(project)
+        val languageFolder = settings.state.languageFolderPath
+        val preferredFallback = settings.state.preferredFallbackLanguage
+
+        val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder) ?: return null
+
+        // Try to find in preferred fallback language first
+        val fallbackFile = langDir.findChild("$preferredFallback.yml")
+            ?: langDir.findChild("$preferredFallback.yaml")
+        if (fallbackFile != null) {
+            val location = getKeyLocationFromFile(fallbackFile, key)
+            if (location != null) return location
+        }
+
+        // Try all other language files
+        langDir.children.forEach { file ->
+            if ((file.extension == "yml" || file.extension == "yaml") && file.nameWithoutExtension != preferredFallback) {
+                val location = getKeyLocationFromFile(file, key)
+                if (location != null) return location
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Checks if a key exists in the primary language.
+     *
+     * @param key The language key in dot notation.
+     * @return True if the key exists in the primary language, false otherwise.
+     */
+    fun existsInPrimaryLanguage(key: String): Boolean {
+        return getKeyLocation(key) != null
     }
 
     /**
@@ -169,8 +192,8 @@ class LanguageResolver(private val project: Project) {
         val settings = EzCordSettings.getInstance(project)
         val languageFolder = settings.state.languageFolderPath
 
-        val baseDir = project.guessProjectDir() ?: return emptyMap()
-        val langDir = baseDir.findFileByRelativePath(languageFolder) ?: return emptyMap()
+        // Use LocalFileSystem for absolute paths (consistent with resolve())
+        val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder) ?: return emptyMap()
 
         val result = mutableMapOf<String, String>()
 

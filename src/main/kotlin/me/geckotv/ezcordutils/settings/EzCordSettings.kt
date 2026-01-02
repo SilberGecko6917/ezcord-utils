@@ -15,6 +15,7 @@ class EzCordSettings : PersistentStateComponent<EzCordSettings.State> {
     data class State(
         var languageFolderPath: String = "",
         var defaultLanguage: String = "en",
+        var preferredFallbackLanguage: String = "en",
         var showPopupForMultipleKeys: Boolean = true
     )
 

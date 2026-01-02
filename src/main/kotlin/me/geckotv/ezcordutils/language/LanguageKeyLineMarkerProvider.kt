@@ -36,16 +36,34 @@ class LanguageKeyLineMarkerProvider : LineMarkerProvider {
 
         // If we found any keys, create a line marker
         if (foundKeys.isNotEmpty()) {
-            val tooltipText = if (foundKeys.size == 1) {
-                "Navigate to language key: ${foundKeys[0].first}"
+            // Check if any key is missing in the primary language (fallback only)
+            val hasFallbackOnly = foundKeys.any { (key, _) ->
+                !resolver.existsInPrimaryLanguage(key)
+            }
+
+            // Use different icon for fallback-only keys
+            val icon = if (hasFallbackOnly) {
+                AllIcons.General.Warning  // Warning icon for fallback translations
             } else {
-                "Navigate to language keys (click to choose):\n${foundKeys.joinToString("\n") { "  • ${it.first}" }}"
+                AllIcons.Gutter.ImplementedMethod  // Normal icon for primary language
+            }
+
+            val tooltipText = if (foundKeys.size == 1) {
+                val fallbackWarning = if (hasFallbackOnly) " ⚠️ (fallback only)" else ""
+                "Navigate to language key: ${foundKeys[0].first}$fallbackWarning"
+            } else {
+                val fallbackWarning = if (hasFallbackOnly) " ⚠️ (some keys are fallback only)" else ""
+                "Navigate to language keys (click to choose):\n${foundKeys.joinToString("\n") { (key, _) ->
+                    val isFallback = !resolver.existsInPrimaryLanguage(key)
+                    val marker = if (isFallback) " ⚠️" else ""
+                    "  • $key$marker"
+                }}$fallbackWarning"
             }
 
             return LineMarkerInfo(
                 element,
                 element.textRange,
-                AllIcons.Gutter.ImplementedMethod,
+                icon,
                 { tooltipText },
                 { mouseEvent, _ ->
                     val settings = EzCordSettings.getInstance(parent.project)

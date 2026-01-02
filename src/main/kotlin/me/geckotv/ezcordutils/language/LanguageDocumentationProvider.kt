@@ -2,10 +2,21 @@ package me.geckotv.ezcordutils.language
 
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.jetbrains.python.psi.PyStringLiteralExpression
 import me.geckotv.ezcordutils.utils.LanguageUtils
+import me.geckotv.ezcordutils.settings.EzCordSettings
+
+/**
+ * Contains translation information including fallback details.
+ */
+data class TranslationInfo(
+    val translation: String,
+    val isFromPrimaryLanguage: Boolean,
+    val fallbackLanguage: String? = null
+)
 
 /**
  * Provides documentation for language keys in Python files.
@@ -39,11 +50,11 @@ class LanguageDocumentationProvider : AbstractDocumentationProvider() {
         }
 
         // Build translations map from found keys
-        val translations = mutableMapOf<String, String>()
+        val translations = mutableMapOf<String, TranslationInfo>()
         for ((key, _) in foundKeys) {
-            val translatedText = resolver.resolve(key)
-            if (translatedText != null) {
-                translations[key] = translatedText
+            val translationInfo = resolveWithFallback(resolver, key)
+            if (translationInfo != null) {
+                translations[key] = translationInfo
             }
         }
 
@@ -52,11 +63,11 @@ class LanguageDocumentationProvider : AbstractDocumentationProvider() {
         }
 
         if (translations.size == 1) {
-            val (singleKey, singleTranslation) = translations.entries.first()
-            return buildDocumentation(singleKey, singleTranslation)
+            val (singleKey, singleTranslationInfo) = translations.entries.first()
+            return buildDocumentation(pyString.project, singleKey, singleTranslationInfo)
         }
 
-        return buildMultiDocumentation(translations)
+        return buildMultiDocumentation(pyString.project, translations)
     }
 
 
@@ -83,17 +94,75 @@ class LanguageDocumentationProvider : AbstractDocumentationProvider() {
     }
 
     /**
+     * Resolves a language key with fallback mechanism.
+     * First tries the primary language, then falls back to other available languages.
+     *
+     * @param resolver The language resolver instance.
+     * @param key The language key to resolve.
+     * @return TranslationInfo containing the translation and metadata, or null if not found.
+     */
+    private fun resolveWithFallback(resolver: LanguageResolver, key: String): TranslationInfo? {
+        // First try the primary language
+        val primaryTranslation = resolver.resolve(key)
+
+        if (primaryTranslation != null) {
+            return TranslationInfo(
+                translation = primaryTranslation,
+                isFromPrimaryLanguage = true
+            )
+        }
+
+        // If not found in primary language, try all other languages
+        val allTranslations = resolver.resolveAllLanguages(key)
+
+        if (allTranslations.isEmpty()) {
+            return null
+        }
+
+        // Get preferred fallback language from settings
+        val settings = EzCordSettings.getInstance(resolver.project)
+        val preferredFallback = settings.state.preferredFallbackLanguage
+
+        // Prefer the configured fallback language, then any other language
+        val fallbackEntry = allTranslations.entries.firstOrNull { it.key == preferredFallback }
+            ?: allTranslations.entries.firstOrNull()
+
+
+        return if (fallbackEntry != null) {
+            TranslationInfo(
+                translation = fallbackEntry.value,
+                isFromPrimaryLanguage = false,
+                fallbackLanguage = fallbackEntry.key
+            )
+        } else {
+            null
+        }
+    }
+
+    /**
      * Builds the HTML documentation to display for a single key.
      */
-    private fun buildDocumentation(key: String, translation: String): String {
+    private fun buildDocumentation(project: Project, key: String, translationInfo: TranslationInfo): String {
         return buildString {
             append("<div class='definition'><pre>")
             append("<b>Language Key:</b> $key")
             append("</pre></div>")
             append("<div class='content'>")
-            append("<p><b>Translation:</b></p>")
+
+            if (!translationInfo.isFromPrimaryLanguage && translationInfo.fallbackLanguage != null) {
+                val settings = EzCordSettings.getInstance(project)
+                val primaryLanguage = settings.state.defaultLanguage
+
+                append("<p style='color: #E8A317; font-weight: bold;'>")
+                append("⚠️ This is currently not translated in the language $primaryLanguage")
+                append("</p>")
+                append("<p><b>Fallback Language (${translationInfo.fallbackLanguage}):</b></p>")
+            } else {
+                append("<p><b>Translation:</b></p>")
+            }
+
             append("<p style='margin-left: 10px; font-style: italic;'>")
-            append(escapeHtml(translation))
+            append(escapeHtml(translationInfo.translation))
             append("</p>")
             append("</div>")
         }
@@ -102,18 +171,29 @@ class LanguageDocumentationProvider : AbstractDocumentationProvider() {
     /**
      * Builds the HTML documentation to display for multiple keys.
      */
-    private fun buildMultiDocumentation(translations: Map<String, String>): String {
+    private fun buildMultiDocumentation(project: Project, translations: Map<String, TranslationInfo>): String {
         return buildString {
             append("<div class='definition'><pre>")
             append("<b>Language Keys Found:</b> ${translations.size}")
             append("</pre></div>")
             append("<div class='content'>")
 
-            translations.forEach { (key, translation) ->
+            translations.forEach { (key, translationInfo) ->
                 append("<hr style='margin: 8px 0; border: 0; border-top: 1px solid #ccc;'>")
                 append("<p><b>Key:</b> $key</p>")
+
+                if (!translationInfo.isFromPrimaryLanguage && translationInfo.fallbackLanguage != null) {
+                    val settings = EzCordSettings.getInstance(project)
+                    val primaryLanguage = settings.state.defaultLanguage
+
+                    append("<p style='color: #E8A317; font-weight: bold;'>")
+                    append("⚠️ This is currently not translated in the language $primaryLanguage")
+                    append("</p>")
+                    append("<p><b>Fallback Language (${translationInfo.fallbackLanguage}):</b></p>")
+                }
+
                 append("<p style='margin-left: 10px; font-style: italic;'>")
-                append(escapeHtml(translation))
+                append(escapeHtml(translationInfo.translation))
                 append("</p>")
             }
 
