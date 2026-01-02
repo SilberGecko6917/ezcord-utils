@@ -13,17 +13,34 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Just a utility feature for EzCord.
+        <h2>EzCord Utils - Supercharge Your Discord Bot Development!</h2>
+
+        <p>
+            A powerful IntelliJ plugin designed to streamline your Discord bot development workflow with <a href="https://ezcord.readthedocs.io/en/latest/">EzCord</a>.
+            Say goodbye to manual language file navigation and hello to intelligent autocomplete!
+        </p>
+
+        <h3>✨ Features</h3>
+        <ul>
+            <li><b>Smart Language Key Autocomplete</b> - Instantly suggests available language keys as you type</li>
+            <li><b>Quick Documentation</b> - Hover over any language key to see its translation in real-time</li>
+            <li><b>One-Click Navigation</b> - Jump directly to language definitions in YAML files with gutter icons</li>
+            <li><b>File Prefix Detection</b> - Automatically resolves keys with file-based prefixes</li>
+        </ul>
+
+        <h3>🎯 Perfect For</h3>
+        <p>
+            Developers working with <a href="https://ezcord.readthedocs.io/en/latest/">EzCord</a> who want to boost productivity and reduce errors
+            when managing multi-language support.
+        </p>
     ]]></description>
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.compose</depends>
 
-    <depends>com.intellij.modules.json</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
     <depends>PythonCore</depends>
-    <resource-bundle>messages.MyMessageBundle</resource-bundle>
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
@@ -43,7 +60,6 @@
             language="Python"
             implementationClass="me.geckotv.ezcordutils.language.LanguageKeyCompletionContributor"
             order="first"/>
-
 
         <lang.documentationProvider
             language="Python"

@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "me.geckotv"
-version = "1.0-SNAPSHOT"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
@@ -27,7 +27,6 @@ dependencies {
         @Suppress("UnstableApiUsage")
         composeUI()
 
-        bundledPlugin("com.intellij.modules.json")
         bundledPlugin("org.jetbrains.plugins.yaml")
         bundledPlugin("PythonCore")
     }
@@ -40,7 +39,14 @@ intellijPlatform {
         }
 
         changeNotes = """
-            Initial version
+            <h3>Version 1.0.0 - Initial Release 🎉</h3>
+            <ul>
+                <li><b>Smart Language Key Autocomplete</b> - Get intelligent suggestions for all available language keys as you type</li>
+                <li><b>Quick Documentation on Hover</b> - Instantly see translations when hovering over language keys in your Python code</li>
+                <li><b>One-Click Navigation with Gutter Icons</b> - Jump directly to YAML language file definitions with clickable icons</li>
+                <li><b>Automatic File Prefix Detection</b> - Resolves keys with file-based prefixes automatically</li>
+            </ul>
+            <p><i>Happy Discord bot development! 🤖</i></p>
         """.trimIndent()
     }
 }
