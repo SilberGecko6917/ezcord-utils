@@ -213,6 +213,25 @@ class LanguageResolver(val project: Project) {
     }
 
     /**
+     * Gets the location of a language key in a specific language file.
+     *
+     * @param key The language key in dot notation.
+     * @param language The language code (e.g., "en", "de").
+     * @return The location (file and line number), or null if not found.
+     */
+    fun getKeyLocationForLanguage(key: String, language: String): LanguageKeyLocation? {
+        val settings = EzCordSettings.getInstance(project)
+        val languageFolder = settings.state.languageFolderPath
+
+        val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder) ?: return null
+
+        val langFile = langDir.findChild("$language.yml")
+            ?: langDir.findChild("$language.yaml") ?: return null
+
+        return getKeyLocationFromFile(langFile, key)
+    }
+
+    /**
      * Gets all available language keys from all language files.
      *
      * @return A set of all language keys in dot notation.
@@ -238,6 +257,24 @@ class LanguageResolver(val project: Project) {
         }
 
         return allKeys
+    }
+
+    /**
+     * Gets all available language codes.
+     *
+     * @return A list of language codes (e.g., ["en", "de", "fr"]).
+     */
+    fun getAllAvailableLanguages(): List<String> {
+        val settings = EzCordSettings.getInstance(project)
+        val languageFolder = settings.state.languageFolderPath
+
+        val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder)
+            ?: return emptyList()
+
+        return langDir.children
+            .filter { it.extension == "yml" || it.extension == "yaml" }
+            .map { it.nameWithoutExtension }
+            .sorted()
     }
 
     /**
