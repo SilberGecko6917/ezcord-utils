@@ -4,6 +4,7 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
@@ -17,6 +18,7 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
 
     private var languageFolderField: TextFieldWithBrowseButton? = null
     private var defaultLanguageField: JBTextField? = null
+    private var showPopupCheckBox: JBCheckBox? = null
 
     override fun getDisplayName(): String = "EzCord-Utils Settings"
 
@@ -43,9 +45,14 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
 
         defaultLanguageField = JBTextField(settings.state.defaultLanguage)
 
+        showPopupCheckBox = JBCheckBox("Show popup menu for multiple keys", settings.state.showPopupForMultipleKeys).apply {
+            toolTipText = "When enabled, shows a popup menu to choose between multiple language keys. When disabled, jumps directly to the first key."
+        }
+
         return FormBuilder.createFormBuilder()
             .addLabeledComponent(JBLabel("Language folder path:"), languageFolderField!!, 1, false)
             .addLabeledComponent(JBLabel("Default language:"), defaultLanguageField!!, 1, false)
+            .addComponent(showPopupCheckBox!!, 1)
             .addComponentFillVertically(JPanel(), 0)
             .panel
     }
@@ -53,19 +60,22 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
     override fun isModified(): Boolean {
         val settings = EzCordSettings.getInstance(project)
         return languageFolderField?.text != settings.state.languageFolderPath ||
-               defaultLanguageField?.text != settings.state.defaultLanguage
+               defaultLanguageField?.text != settings.state.defaultLanguage ||
+               showPopupCheckBox?.isSelected != settings.state.showPopupForMultipleKeys
     }
 
     override fun apply() {
         val settings = EzCordSettings.getInstance(project)
         settings.state.languageFolderPath = languageFolderField?.text ?: "local"
         settings.state.defaultLanguage = defaultLanguageField?.text ?: "en"
+        settings.state.showPopupForMultipleKeys = showPopupCheckBox?.isSelected ?: true
     }
 
     override fun reset() {
         val settings = EzCordSettings.getInstance(project)
         languageFolderField?.text = settings.state.languageFolderPath
         defaultLanguageField?.text = settings.state.defaultLanguage
+        showPopupCheckBox?.isSelected = settings.state.showPopupForMultipleKeys
     }
 }
 

@@ -8,6 +8,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.psi.PsiElement
 import com.intellij.ui.awt.RelativePoint
 import com.jetbrains.python.psi.PyStringLiteralExpression
+import me.geckotv.ezcordutils.settings.EzCordSettings
 import me.geckotv.ezcordutils.utils.LanguageUtils
 import java.awt.event.MouseEvent
 
@@ -47,13 +48,22 @@ class LanguageKeyLineMarkerProvider : LineMarkerProvider {
                 AllIcons.Gutter.ImplementedMethod,
                 { tooltipText },
                 { mouseEvent, _ ->
+                    val settings = EzCordSettings.getInstance(parent.project)
+
                     if (foundKeys.size == 1) {
                         // Single key: navigate directly
                         val (_, location) = foundKeys[0]
                         utils.gotoLine(parent.project, location.file, location.lineNumber)
                     } else {
-                        // Multiple keys: show popup menu
-                        showNavigationPopup(mouseEvent, foundKeys, parent, utils)
+                        // Multiple keys: check setting
+                        if (settings.state.showPopupForMultipleKeys) {
+                            // Show popup menu
+                            showNavigationPopup(mouseEvent, foundKeys, parent, utils)
+                        } else {
+                            // Jump directly to first key
+                            val (_, firstLocation) = foundKeys[0]
+                            utils.gotoLine(parent.project, firstLocation.file, firstLocation.lineNumber)
+                        }
                     }
                 },
                 GutterIconRenderer.Alignment.RIGHT,
