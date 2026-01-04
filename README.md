@@ -1,7 +1,5 @@
 # EzCord Utils - IntelliJ Plugin
 
-[<iframe width="245px" height="48px" src="https://plugins.jetbrains.com/embeddable/install/29591"></iframe>
-
 A powerful IntelliJ plugin to streamline Discord bot development with [EzCord](https://ezcord.readthedocs.io/en/latest/).
 
 ## ✨ Features
