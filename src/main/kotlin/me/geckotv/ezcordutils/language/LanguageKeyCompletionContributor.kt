@@ -56,22 +56,33 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
         relevantKeys.forEach { fullKey ->
             val translation = resolver.resolve(fullKey)
 
-            // Keep "general." prefix, otherwise remove file prefix
-            val displayKey = if (fullKey.startsWith("general.")) {
-                fullKey
+            // For general keys, keep the full key
+            if (fullKey.startsWith("general.")) {
+                val lookupElement = LookupElementBuilder.create(fullKey)
+                    .withTypeText(translation ?: "⚠️ Not Translated yet", true)
+                    .bold()
+                result.addElement(lookupElement)
             } else if (filePrefix != null && fullKey.startsWith("$filePrefix.")) {
-                fullKey.removePrefix("$filePrefix.")
+                val shortKey = fullKey.removePrefix("$filePrefix.")
+
+                result.addElement(
+                    LookupElementBuilder.create(shortKey)
+                        .withTypeText(translation ?: "⚠️ Not Translated yet", true)
+                        .bold()
+                )
+
+                result.addElement(
+                    LookupElementBuilder.create(fullKey)
+                        .withTypeText(translation ?: "⚠️ Not Translated yet", true)
+                        .bold()
+                )
             } else {
-                fullKey
+                // Add other keys as-is
+                val lookupElement = LookupElementBuilder.create(fullKey)
+                    .withTypeText(translation ?: "⚠️ Not Translated yet", true)
+                    .bold()
+                result.addElement(lookupElement)
             }
-
-            println("[DEBUG Autocomplete] Adding key: $displayKey (original: $fullKey) -> $translation")
-
-            val lookupElement = LookupElementBuilder.create(displayKey)
-                .withTypeText(translation ?: "⚠️ Not Translated yet", true)
-                .bold()
-
-            result.addElement(lookupElement)
         }
 
         println("[DEBUG Autocomplete] Added ${relevantKeys.size} completion items")
