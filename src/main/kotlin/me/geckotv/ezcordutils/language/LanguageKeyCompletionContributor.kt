@@ -31,17 +31,12 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
         val project = parameters.position.project
         val file = parameters.originalFile
 
-        println("[DEBUG Autocomplete] File: ${file.name}")
-
         // Get the file prefix (e.g., "welcome" from "welcome.py")
         val filePrefix = LanguageUtils().getFilePrefix(file.name)
-        println("[DEBUG Autocomplete] File prefix: $filePrefix")
 
         // Get all available language keys
         val resolver = LanguageResolver(project)
         val allKeys = resolver.getAllKeys()
-
-        println("[DEBUG Autocomplete] Found ${allKeys.size} total keys")
 
         // Filter keys based on file prefix if available
         val relevantKeys = if (filePrefix != null) {
@@ -49,8 +44,6 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
         } else {
             allKeys
         }
-
-        println("[DEBUG Autocomplete] Showing ${relevantKeys.size} relevant keys")
 
         // Add completion items
         relevantKeys.forEach { fullKey ->
@@ -84,8 +77,6 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
                 result.addElement(lookupElement)
             }
         }
-
-        println("[DEBUG Autocomplete] Added ${relevantKeys.size} completion items")
     }
 }
 
