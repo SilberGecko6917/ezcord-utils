@@ -76,20 +76,25 @@ class LanguageResolver(val project: Project) {
         val settings = EzCordSettings.getInstance(project)
         val languageFolder = settings.state.languageFolderPath
         val preferredFallback = settings.state.preferredFallbackLanguage
+        val excludedFiles = settings.state.excludedLanguageFiles
 
         val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder) ?: return null
 
         // Try to find in preferred fallback language first
-        val fallbackFile = langDir.findChild("$preferredFallback.yml")
-            ?: langDir.findChild("$preferredFallback.yaml")
-        if (fallbackFile != null) {
-            val location = getKeyLocationFromFile(fallbackFile, key)
-            if (location != null) return location
+        if (!excludedFiles.contains(preferredFallback)) {
+            val fallbackFile = langDir.findChild("$preferredFallback.yml")
+                ?: langDir.findChild("$preferredFallback.yaml")
+            if (fallbackFile != null) {
+                val location = getKeyLocationFromFile(fallbackFile, key)
+                if (location != null) return location
+            }
         }
 
         // Try all other language files
         langDir.children.forEach { file ->
-            if ((file.extension == "yml" || file.extension == "yaml") && file.nameWithoutExtension != preferredFallback) {
+            if ((file.extension == "yml" || file.extension == "yaml") &&
+                file.nameWithoutExtension != preferredFallback &&
+                !excludedFiles.contains(file.nameWithoutExtension)) {
                 val location = getKeyLocationFromFile(file, key)
                 if (location != null) return location
             }
@@ -191,6 +196,7 @@ class LanguageResolver(val project: Project) {
     fun resolveAllLanguages(key: String): Map<String, String> {
         val settings = EzCordSettings.getInstance(project)
         val languageFolder = settings.state.languageFolderPath
+        val excludedFiles = settings.state.excludedLanguageFiles
 
         // Use LocalFileSystem for absolute paths (consistent with resolve())
         val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder) ?: return emptyMap()
@@ -199,7 +205,8 @@ class LanguageResolver(val project: Project) {
 
         // Find all .yml and .yaml files
         langDir.children.forEach { file ->
-            if (file.extension == "yml" || file.extension == "yaml") {
+            if ((file.extension == "yml" || file.extension == "yaml") &&
+                !excludedFiles.contains(file.nameWithoutExtension)) {
                 val langCode = file.nameWithoutExtension
                 val translation = resolveKeyFromFile(file, key)
 
@@ -239,6 +246,7 @@ class LanguageResolver(val project: Project) {
     fun getAllKeys(): Set<String> {
         val settings = EzCordSettings.getInstance(project)
         val languageFolder = settings.state.languageFolderPath
+        val excludedFiles = settings.state.excludedLanguageFiles
 
         val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder)
 
@@ -250,7 +258,8 @@ class LanguageResolver(val project: Project) {
 
         // Find all .yml and .yaml files
         langDir.children.forEach { file ->
-            if (file.extension == "yml" || file.extension == "yaml") {
+            if ((file.extension == "yml" || file.extension == "yaml") &&
+                !excludedFiles.contains(file.nameWithoutExtension)) {
                 val keys = extractKeysFromFile(file)
                 allKeys.addAll(keys)
             }
@@ -267,6 +276,7 @@ class LanguageResolver(val project: Project) {
     fun getAllAvailableLanguages(): List<String> {
         val settings = EzCordSettings.getInstance(project)
         val languageFolder = settings.state.languageFolderPath
+        val excludedFiles = settings.state.excludedLanguageFiles
 
         val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder)
             ?: return emptyList()
@@ -274,6 +284,7 @@ class LanguageResolver(val project: Project) {
         return langDir.children
             .filter { it.extension == "yml" || it.extension == "yaml" }
             .map { it.nameWithoutExtension }
+            .filter { !excludedFiles.contains(it) }
             .sorted()
     }
 
