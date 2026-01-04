@@ -15,10 +15,8 @@
     <description><![CDATA[
         <h2>EzCord Utils - Supercharge Your Discord Bot Development!</h2>
 
-        <p>
-            A powerful IntelliJ plugin designed to streamline your Discord bot development workflow with <a href="https://ezcord.readthedocs.io/en/latest/">EzCord</a>.
-            Say goodbye to manual language file navigation and hello to intelligent autocomplete!
-        </p>
+        <p>A powerful IntelliJ plugin designed to streamline your Discord bot development workflow with <a href="https://ezcord.readthedocs.io/en/latest/">EzCord</a>.</p>
+        <p>Say goodbye to manual language file navigation and hello to intelligent autocomplete!</p>
 
         <h3>✨ Features</h3>
         <ul>
@@ -26,6 +24,7 @@
             <li><b>Quick Documentation</b> - Hover over any language key to see its translation in real-time</li>
             <li><b>One-Click Navigation</b> - Jump directly to language definitions in YAML files with gutter icons</li>
             <li><b>Language Keys Tool Window</b> - View all language keys and translations in a dedicated tool window with detailed information</li>
+            <li><b>Live Templates</b> - Speed up your coding with pre-defined templates for common discord features</li>
         </ul>
 
         <h3>🎯 Perfect For</h3>

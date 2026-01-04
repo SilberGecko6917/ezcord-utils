@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "me.geckotv"
-version = "1.0.0"
+version = "1.0.1"
 
 repositories {
     mavenCentral()
@@ -39,6 +39,13 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h3>Version 1.1.0 - New Features 🎉</h3>
+            <ul>
+                <li><b>Live Templates</b> - Speed up your coding with pre-defined templates for common discord features</li>
+                <li><b>Enhanced Autocomplete</b> - Now supports both shortened and full language key formats (e.g., both `embed.title` and `base.embed.title`)</li>
+                <li><b>Bug fixes and improvements</b></li>
+            </ul>
+            
             <h3>Version 1.0.0 - Initial Release 🎉</h3>
             <ul>
                 <li><b>Smart Language Key Autocomplete</b> - Get intelligent suggestions for all available language keys as you type</li>

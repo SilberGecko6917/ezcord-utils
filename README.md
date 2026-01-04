@@ -8,7 +8,7 @@ A powerful IntelliJ plugin to streamline Discord bot development with [EzCord](h
 - **Smart Language Key Autocomplete** - Intelligent suggestions for available language keys as you type
 - **Quick Documentation** - Shows translations when hovering over language keys in real-time
 - **One-Click Navigation** - Jump directly to language definitions in YAML files via gutter icons
-- **File Prefix Detection** - Automatic resolution of keys with file-based prefixes
+- **Language Keys Tool Window** - View all language keys and translations in a dedicated tool window with detailed information
 
 ### ⚡ Live Templates
 With the integrated Live Templates, you can quickly insert code snippets for py-cord and discord.py. Simply type the abbreviation and press `Tab`.
