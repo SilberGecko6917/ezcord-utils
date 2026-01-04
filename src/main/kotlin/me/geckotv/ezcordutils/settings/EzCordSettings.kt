@@ -16,7 +16,8 @@ class EzCordSettings : PersistentStateComponent<EzCordSettings.State> {
         var languageFolderPath: String = "",
         var defaultLanguage: String = "en",
         var preferredFallbackLanguage: String = "en",
-        var showPopupForMultipleKeys: Boolean = true
+        var showPopupForMultipleKeys: Boolean = true,
+        var excludedLanguageFiles: MutableList<String> = mutableListOf()
     )
 
     override fun getState(): State = myState

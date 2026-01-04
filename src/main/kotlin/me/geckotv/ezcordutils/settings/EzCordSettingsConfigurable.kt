@@ -7,7 +7,10 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
+import com.intellij.ui.components.JBTextArea
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.FormBuilder
+import java.awt.Dimension
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -20,6 +23,7 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
     private var defaultLanguageField: JBTextField? = null
     private var preferredFallbackLanguageField: JBTextField? = null
     private var showPopupCheckBox: JBCheckBox? = null
+    private var excludedLanguageFilesArea: JBTextArea? = null
 
     override fun getDisplayName(): String = "EzCord-Utils Settings"
 
@@ -54,21 +58,39 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
             toolTipText = "When enabled, shows a popup menu to choose between multiple language keys. When disabled, jumps directly to the first key."
         }
 
+        excludedLanguageFilesArea = JBTextArea().apply {
+            text = settings.state.excludedLanguageFiles.joinToString("\n")
+            rows = 3
+            lineWrap = true
+            wrapStyleWord = true
+            toolTipText = "Enter language file names to exclude from translation checks (one per line, without .yml/.yaml extension). E.g., 'oracle', 'custom_system'"
+        }
+        val scrollPane = JBScrollPane(excludedLanguageFilesArea).apply {
+            preferredSize = Dimension(300, 60)
+        }
+
         return FormBuilder.createFormBuilder()
             .addLabeledComponent(JBLabel("Language folder path:"), languageFolderField!!, 1, false)
             .addLabeledComponent(JBLabel("Default language:"), defaultLanguageField!!, 1, false)
             .addLabeledComponent(JBLabel("Preferred fallback language:"), preferredFallbackLanguageField!!, 1, false)
             .addComponent(showPopupCheckBox!!, 1)
+            .addLabeledComponent(JBLabel("Excluded language files:"), scrollPane, 1, false)
             .addComponentFillVertically(JPanel(), 0)
             .panel
     }
 
     override fun isModified(): Boolean {
         val settings = EzCordSettings.getInstance(project)
+        val currentExcludedFiles = excludedLanguageFilesArea?.text?.split("\n")
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.toMutableList() ?: mutableListOf()
+
         return languageFolderField?.text != settings.state.languageFolderPath ||
                defaultLanguageField?.text != settings.state.defaultLanguage ||
                preferredFallbackLanguageField?.text != settings.state.preferredFallbackLanguage ||
-               showPopupCheckBox?.isSelected != settings.state.showPopupForMultipleKeys
+               showPopupCheckBox?.isSelected != settings.state.showPopupForMultipleKeys ||
+               currentExcludedFiles != settings.state.excludedLanguageFiles
     }
 
     override fun apply() {
@@ -77,6 +99,10 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
         settings.state.defaultLanguage = defaultLanguageField?.text ?: "en"
         settings.state.preferredFallbackLanguage = preferredFallbackLanguageField?.text ?: "en"
         settings.state.showPopupForMultipleKeys = showPopupCheckBox?.isSelected ?: true
+        settings.state.excludedLanguageFiles = excludedLanguageFilesArea?.text?.split("\n")
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.toMutableList() ?: mutableListOf()
     }
 
     override fun reset() {
@@ -85,6 +111,7 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
         defaultLanguageField?.text = settings.state.defaultLanguage
         preferredFallbackLanguageField?.text = settings.state.preferredFallbackLanguage
         showPopupCheckBox?.isSelected = settings.state.showPopupForMultipleKeys
+        excludedLanguageFilesArea?.text = settings.state.excludedLanguageFiles.joinToString("\n")
     }
 }
 
