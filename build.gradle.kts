@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "me.geckotv"
-version = "1.0.1"
+version = "1.0.2"
 
 repositories {
     mavenCentral()
@@ -35,7 +35,7 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "252.25557"
+            sinceBuild = "253"
         }
 
         changeNotes = """
