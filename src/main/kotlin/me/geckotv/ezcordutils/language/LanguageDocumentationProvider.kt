@@ -24,7 +24,6 @@ data class TranslationInfo(
  */
 class LanguageDocumentationProvider : AbstractDocumentationProvider() {
 
-    @Suppress("UnstableApiUsage")
     override fun generateDoc(element: PsiElement?, originalElement: PsiElement?): String? {
         val pyString = when {
             element is PyStringLiteralExpression -> element
@@ -32,16 +31,11 @@ class LanguageDocumentationProvider : AbstractDocumentationProvider() {
             else -> { return null }
         }
 
-        val stringValue = pyString.stringValue.trim()
-
-        if (stringValue.isBlank()) {
-            return null
-        }
-
-        if (!stringValue.contains('.')) return null
+        val utils = LanguageUtils()
+        val stringValue = utils.extractStringValue(pyString)
+        if (!utils.isValidLanguageKey(stringValue)) return null
 
         val resolver = LanguageResolver(pyString.project)
-        val utils = LanguageUtils()
         val filePrefix = utils.getFilePrefix(pyString.containingFile.name)
 
         // Use utility function to find all keys

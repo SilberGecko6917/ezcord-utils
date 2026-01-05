@@ -3,10 +3,27 @@ package me.geckotv.ezcordutils.utils
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.jetbrains.python.psi.PyStringLiteralExpression
 import me.geckotv.ezcordutils.language.LanguageKeyLocation
 import me.geckotv.ezcordutils.language.LanguageResolver
 
 class LanguageUtils {
+    /**
+     * Extracts the string value from a PyStringLiteralExpression.
+     * Uses stable PSI API by removing quotes from text property.
+     */
+    fun extractStringValue(pyString: PyStringLiteralExpression): String {
+        return pyString.text.trim().removeSurrounding("\"").removeSurrounding("'")
+    }
+
+    /**
+     * Checks if a string value is a valid language key candidate.
+     * A valid key must not be blank and must contain a dot.
+     */
+    fun isValidLanguageKey(stringValue: String): Boolean {
+        return stringValue.isNotBlank() && stringValue.contains('.')
+    }
+
     /**
      * Extracts the prefix from a filename (e.g., "welcome" from "welcome.py").
      * Handles formats like "welcome.py", "welcome.container.py", etc.

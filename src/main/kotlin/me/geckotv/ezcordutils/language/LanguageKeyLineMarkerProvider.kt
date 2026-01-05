@@ -23,14 +23,11 @@ class LanguageKeyLineMarkerProvider : LineMarkerProvider {
         if (parent !is PyStringLiteralExpression) return null
         if (parent.firstChild != element) return null  // Only register on the first leaf child
 
-        @Suppress("UnstableApiUsage")
-        val stringValue = parent.stringValue.trim()
-        if (stringValue.isBlank()) return null
-
-        if (!stringValue.contains('.')) return null
+        val utils = LanguageUtils()
+        val stringValue = utils.extractStringValue(parent)
+        if (!utils.isValidLanguageKey(stringValue)) return null
 
         val resolver = LanguageResolver(parent.project)
-        val utils = LanguageUtils()
         val filePrefix = utils.getFilePrefix(parent.containingFile.name)
 
         // Use utility function to find all keys
