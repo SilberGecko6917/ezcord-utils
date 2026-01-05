@@ -39,6 +39,12 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h3>Version 1.0.2 - Stability & Compatibility 🔧</h3>
+            <ul>
+                <li><b>Code Cleanup</b> - Removed code duplication and improved maintainability</li>
+                <li><b>Stable API Usage</b> - Replaced experimental APIs with stable alternatives</li>
+            </ul>
+            
             <h3>Version 1.0.1 - New Features 🎉</h3>
             <ul>
                 <li><b>Live Templates</b> - Speed up your coding with pre-defined templates for common discord features</li>
