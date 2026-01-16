@@ -50,19 +50,7 @@ class LanguageResolver(val project: Project) {
      */
     fun getKeyLocation(key: String): LanguageKeyLocation? {
         val settings = EzCordSettings.getInstance(project)
-        val languageFolder = settings.state.languageFolderPath
-        val language = settings.state.defaultLanguage
-
-        val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder) ?: return null
-
-        val langFile = langDir.findChild("$language.yml")
-            ?: langDir.findChild("$language.yaml")
-
-        if (langFile == null) {
-            return null
-        }
-
-        return getKeyLocationFromFile(langFile, key)
+        return getKeyLocationForLanguage(key, settings.state.defaultLanguage)
     }
 
     /**
@@ -73,19 +61,7 @@ class LanguageResolver(val project: Project) {
      */
     fun getFallbackKeyLocation(key: String): LanguageKeyLocation? {
         val settings = EzCordSettings.getInstance(project)
-        val languageFolder = settings.state.languageFolderPath
-        val fallbackLanguage = settings.state.preferredFallbackLanguage
-
-        val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder) ?: return null
-
-        val langFile = langDir.findChild("$fallbackLanguage.yml")
-            ?: langDir.findChild("$fallbackLanguage.yaml")
-
-        if (langFile == null) {
-            return null
-        }
-
-        return getKeyLocationFromFile(langFile, key)
+        return getKeyLocationForLanguage(key, settings.state.preferredFallbackLanguage)
     }
 
     /**
@@ -352,4 +328,3 @@ class LanguageResolver(val project: Project) {
         return keys
     }
 }
-

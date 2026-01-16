@@ -73,4 +73,4 @@ Or download the plugin manually from the [JetBrains Marketplace](https://plugins
 1. Configure the language folder in `Settings` → `Tools` → `EzCord Settings`
 2. Start typing a language key (e.g., ctx.t("") or directly "general.test") in your Python code
 3. Get automatic suggestions for available keys
-4. Click the gutter icon to jump to the definition (or `Shift+Click` for fallback language)
+4. Click the gutter icon to jump to the definition (or `Ctrl+Click` for fallback language)
