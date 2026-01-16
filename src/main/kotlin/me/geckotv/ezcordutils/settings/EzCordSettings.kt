@@ -17,6 +17,7 @@ class EzCordSettings : PersistentStateComponent<EzCordSettings.State> {
         var defaultLanguage: String = "en",
         var preferredFallbackLanguage: String = "en",
         var showPopupForMultipleKeys: Boolean = true,
+        var autoCompleteEverything: Boolean = true,
         var excludedLanguageFiles: MutableList<String> = mutableListOf()
     )
 

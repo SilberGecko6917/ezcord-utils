@@ -23,6 +23,7 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
     private var defaultLanguageField: JBTextField? = null
     private var preferredFallbackLanguageField: JBTextField? = null
     private var showPopupCheckBox: JBCheckBox? = null
+    private var autoCompleteEverythingCheckBox: JBCheckBox? = null
     private var excludedLanguageFilesArea: JBTextArea? = null
 
     override fun getDisplayName(): String = "EzCord-Utils Settings"
@@ -58,6 +59,10 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
             toolTipText = "When enabled, shows a popup menu to choose between multiple language keys. When disabled, jumps directly to the first key."
         }
 
+        autoCompleteEverythingCheckBox = JBCheckBox("Autocomplete everything", settings.state.autoCompleteEverything).apply {
+            toolTipText = "When enabled, provides autocomplete suggestions for all language keys, not just those matching the current file and all general keys."
+        }
+
         excludedLanguageFilesArea = JBTextArea().apply {
             text = settings.state.excludedLanguageFiles.joinToString("\n")
             rows = 3
@@ -74,6 +79,7 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
             .addLabeledComponent(JBLabel("Default language:"), defaultLanguageField!!, 1, false)
             .addLabeledComponent(JBLabel("Preferred fallback language:"), preferredFallbackLanguageField!!, 1, false)
             .addComponent(showPopupCheckBox!!, 1)
+            .addComponent(autoCompleteEverythingCheckBox!!, 1)
             .addLabeledComponent(JBLabel("Excluded language files:"), scrollPane, 1, false)
             .addComponentFillVertically(JPanel(), 0)
             .panel
@@ -90,6 +96,7 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
                defaultLanguageField?.text != settings.state.defaultLanguage ||
                preferredFallbackLanguageField?.text != settings.state.preferredFallbackLanguage ||
                showPopupCheckBox?.isSelected != settings.state.showPopupForMultipleKeys ||
+               autoCompleteEverythingCheckBox?.isSelected != settings.state.autoCompleteEverything ||
                currentExcludedFiles != settings.state.excludedLanguageFiles
     }
 
@@ -99,6 +106,7 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
         settings.state.defaultLanguage = defaultLanguageField?.text ?: "en"
         settings.state.preferredFallbackLanguage = preferredFallbackLanguageField?.text ?: "en"
         settings.state.showPopupForMultipleKeys = showPopupCheckBox?.isSelected ?: true
+        settings.state.autoCompleteEverything = autoCompleteEverythingCheckBox?.isSelected ?: true
         settings.state.excludedLanguageFiles = excludedLanguageFilesArea?.text?.split("\n")
             ?.map { it.trim() }
             ?.filter { it.isNotEmpty() }
@@ -111,6 +119,7 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
         defaultLanguageField?.text = settings.state.defaultLanguage
         preferredFallbackLanguageField?.text = settings.state.preferredFallbackLanguage
         showPopupCheckBox?.isSelected = settings.state.showPopupForMultipleKeys
+        autoCompleteEverythingCheckBox?.isSelected = settings.state.autoCompleteEverything
         excludedLanguageFilesArea?.text = settings.state.excludedLanguageFiles.joinToString("\n")
     }
 }
