@@ -66,6 +66,29 @@ class LanguageResolver(val project: Project) {
     }
 
     /**
+     * Gets the location of a language key in the fallback language file.
+     *
+     * @param key The language key in dot notation.
+     * @return The location (file and line number), or null if not found.
+     */
+    fun getFallbackKeyLocation(key: String): LanguageKeyLocation? {
+        val settings = EzCordSettings.getInstance(project)
+        val languageFolder = settings.state.languageFolderPath
+        val fallbackLanguage = settings.state.preferredFallbackLanguage
+
+        val langDir = LocalFileSystem.getInstance().findFileByPath(languageFolder) ?: return null
+
+        val langFile = langDir.findChild("$fallbackLanguage.yml")
+            ?: langDir.findChild("$fallbackLanguage.yaml")
+
+        if (langFile == null) {
+            return null
+        }
+
+        return getKeyLocationFromFile(langFile, key)
+    }
+
+    /**
      * Gets the location of a language key in any available language file.
      * Tries to find the key in any language, preferring the configured fallback language if available.
      *

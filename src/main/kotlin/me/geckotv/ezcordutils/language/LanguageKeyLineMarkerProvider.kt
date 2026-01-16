@@ -66,20 +66,31 @@ class LanguageKeyLineMarkerProvider : LineMarkerProvider {
                 { tooltipText },
                 { mouseEvent, _ ->
                     val settings = EzCordSettings.getInstance(parent.project)
+                    val isControlDown = mouseEvent.isControlDown
 
                     if (foundKeys.size == 1) {
                         // Single key: navigate directly
-                        val (_, location) = foundKeys[0]
-                        utils.gotoLine(parent.project, location.file, location.lineNumber)
+                        val (key, location) = foundKeys[0]
+                        val targetLocation = if (isControlDown) {
+                            resolver.getFallbackKeyLocation(key) ?: location
+                        } else {
+                            location
+                        }
+                        utils.gotoLine(parent.project, targetLocation.file, targetLocation.lineNumber)
                     } else {
                         // Multiple keys: check setting
                         if (settings.state.showPopupForMultipleKeys) {
                             // Show popup menu
-                            showNavigationPopup(mouseEvent, foundKeys, parent, utils)
+                            showNavigationPopup(mouseEvent, foundKeys, parent, utils, resolver, isControlDown)
                         } else {
                             // Jump directly to first key
-                            val (_, firstLocation) = foundKeys[0]
-                            utils.gotoLine(parent.project, firstLocation.file, firstLocation.lineNumber)
+                            val (key, firstLocation) = foundKeys[0]
+                            val targetLocation = if (isControlDown) {
+                                resolver.getFallbackKeyLocation(key) ?: firstLocation
+                            } else {
+                                firstLocation
+                            }
+                            utils.gotoLine(parent.project, targetLocation.file, targetLocation.lineNumber)
                         }
                     }
                 },
@@ -98,12 +109,20 @@ class LanguageKeyLineMarkerProvider : LineMarkerProvider {
         mouseEvent: MouseEvent,
         keys: List<Pair<String, LanguageKeyLocation>>,
         element: PyStringLiteralExpression,
-        utils: LanguageUtils
+        utils: LanguageUtils,
+        resolver: LanguageResolver,
+        isControlDown: Boolean
     ) {
         val popupItems = keys.map { (key, location) ->
+            val targetLocation = if (isControlDown) {
+                resolver.getFallbackKeyLocation(key) ?: location
+            } else {
+                location
+            }
+
             object {
-                override fun toString(): String = key
-                val keyLocation = location
+                override fun toString(): String = key + if (isControlDown) " (Fallback)" else ""
+                val keyLocation = targetLocation
             }
         }
 
