@@ -60,7 +60,7 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
         }
 
         autoCompleteEverythingCheckBox = JBCheckBox("Autocomplete everything", settings.state.autoCompleteEverything).apply {
-            toolTipText = "When enabled, provides autocomplete suggestions for all language keys, not just those matching the current file and all general keys."
+            toolTipText = "When enabled, provides autocomplete suggestions for all language keys. When disabled, only shows keys matching the current file prefix and general keys."
         }
 
         excludedLanguageFilesArea = JBTextArea().apply {
