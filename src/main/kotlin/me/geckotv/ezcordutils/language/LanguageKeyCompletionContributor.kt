@@ -5,6 +5,7 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.util.ProcessingContext
 import com.jetbrains.python.psi.PyStringLiteralExpression
+import me.geckotv.ezcordutils.settings.EzCordSettings
 import me.geckotv.ezcordutils.utils.LanguageUtils
 
 /**
@@ -30,6 +31,7 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
     ) {
         val project = parameters.position.project
         val file = parameters.originalFile
+        val settings = EzCordSettings.getInstance(project)
 
         // Get the file prefix (e.g., "welcome" from "welcome.py")
         val filePrefix = LanguageUtils().getFilePrefix(file.name)
@@ -38,8 +40,9 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
         val resolver = LanguageResolver(project)
         val allKeys = resolver.getAllKeys()
 
-        // Filter keys based on file prefix if available
-        val relevantKeys = if (filePrefix != null) {
+        val relevantKeys = if (settings.state.autoCompleteEverything) {
+            allKeys
+        } else if (filePrefix != null) {
             allKeys.filter { it.startsWith("$filePrefix.") || it.startsWith("general.") }
         } else {
             allKeys
