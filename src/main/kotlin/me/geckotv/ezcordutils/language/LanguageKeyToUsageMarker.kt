@@ -26,9 +26,11 @@ import java.awt.event.MouseEvent
 class LanguageKeyToUsageMarker : LineMarkerProvider {
 
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
-        if (element !is YAMLKeyValue) return null
+        val parent = element.parent
+        if (parent !is YAMLKeyValue) return null
+        if (parent.key != element) return null
 
-        if (element.value is YAMLMapping) return null
+        if (parent.value is YAMLMapping) return null
 
         val project = element.project
         val settings = EzCordSettings.getInstance(project)
@@ -43,7 +45,7 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
 
         if (settings.state.excludedLanguageFiles.contains(file.nameWithoutExtension)) return null
 
-        val fullKey = getFullKey(element)
+        val fullKey = getFullKey(parent)
         if (fullKey.isEmpty()) return null
 
         if (hasAnyUsage(project, fullKey)) {
