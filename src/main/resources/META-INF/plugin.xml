@@ -77,6 +77,10 @@
         <codeInsight.lineMarkerProvider
             language="Python"
             implementationClass="me.geckotv.ezcordutils.language.LanguageKeyLineMarkerProvider"/>
+
+        <codeInsight.lineMarkerProvider
+            language="yaml"
+            implementationClass="me.geckotv.ezcordutils.language.LanguageKeyToUsageMarker"/>
     </extensions>
 
     <projectListeners>
