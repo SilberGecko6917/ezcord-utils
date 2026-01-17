@@ -86,30 +86,59 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
      * Checks if there is at least one usage of the key in the project.
      */
     private fun hasAnyUsage(project: Project, fullKey: String): Boolean {
+        var found = false
+        processKeyUsages(project, fullKey) {
+            found = true
+            false // Stop searching
+        }
+        return found
+    }
+
+    private fun findAllUsages(project: Project, fullKey: String): List<PsiElement> {
+        val results = mutableListOf<PsiElement>()
+        processKeyUsages(project, fullKey) {
+            results.add(it)
+            true // Continue searching
+        }
+        return results.distinctBy { it.textRange.startOffset }
+    }
+
+    /**
+     * Scans for usages of a key (explicit and implicit) and invokes the processor.
+     * @param processor Returns true to continue searching, false to stop.
+     * @return True if search completed, false if stopped by processor.
+     */
+    private fun processKeyUsages(
+        project: Project,
+        fullKey: String,
+        processor: (PsiElement) -> Boolean
+    ): Boolean {
         val helper = PsiSearchHelper.getInstance(project)
         val scope = GlobalSearchScope.projectScope(project)
         val utils = LanguageUtils()
 
-        // 1. Explicit usage search
         val keyParts = fullKey.split(".")
         val searchWord = keyParts.lastOrNull() ?: fullKey
 
-        var found = false
+        // Common logic to check an element and invoke the processor if it matches
+        fun processElement(element: PsiElement, keyToCheck: String): Boolean {
+            val literal = getParentLiteral(element) ?: return true
+            val str = utils.extractStringValue(literal)
+            if (str == keyToCheck || str.contains("{$keyToCheck}") || str.contains("{{$keyToCheck}}")) {
+                return processor(literal)
+            }
+            return true
+        }
 
-        helper.processElementsWithWord(
-            { element, _ ->
-                val literal = getParentLiteral(element) ?: return@processElementsWithWord true
-                val str = utils.extractStringValue(literal)
-                if (str == fullKey || str.contains("{$fullKey}") || str.contains("{{$fullKey}}")) {
-                    found = true; false
-                } else true
-            },
-            scope,
-            searchWord,
-            UsageSearchContext.IN_STRINGS,
-            true
-        )
-        if (found) return true
+        // 1. Explicit usage search
+        if (!helper.processElementsWithWord(
+                { element, _ -> processElement(element, fullKey) },
+                scope,
+                searchWord,
+                UsageSearchContext.IN_STRINGS,
+                true
+            )
+        ) return false
 
         // 2. Implicit usage via file prefixes
         if (keyParts.size > 1) {
@@ -124,26 +153,19 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
                     val fileScope = GlobalSearchScope.fileScope(project, f)
                     val suffixSearchWord = keyParts.last()
 
-                    helper.processElementsWithWord(
-                        { element, _ ->
-                            val literal = getParentLiteral(element) ?: return@processElementsWithWord true
-                            val str = utils.extractStringValue(literal)
-                            if (str == suffix || str.contains("{$suffix}") || str.contains("{{$suffix}}")) {
-                                found = true; false
-                            } else true
-                        },
-                        fileScope,
-                        suffixSearchWord,
-                        UsageSearchContext.IN_STRINGS,
-                        true
-                    )
-                    if (found) return true
+                    if (!helper.processElementsWithWord(
+                            { element, _ -> processElement(element, suffix) },
+                            fileScope,
+                            suffixSearchWord,
+                            UsageSearchContext.IN_STRINGS,
+                            true
+                        )
+                    ) return false
                 }
-                if (found) return true
             }
         }
 
-        return false
+        return true
     }
 
     private fun getParentLiteral(element: PsiElement): PyStringLiteralExpression? {
@@ -189,66 +211,5 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
                 .show(RelativePoint(e))
         }
     }
-
-    private fun findAllUsages(project: Project, fullKey: String): List<PsiElement> {
-        val results = mutableListOf<PsiElement>()
-        val helper = PsiSearchHelper.getInstance(project)
-        val scope = GlobalSearchScope.projectScope(project)
-        val utils = LanguageUtils()
-
-        val keyParts = fullKey.split(".")
-        val searchWord = keyParts.lastOrNull() ?: fullKey
-
-        // 1. Explicit
-        helper.processElementsWithWord(
-            { element, _ ->
-                val literal = getParentLiteral(element)
-                if (literal != null) {
-                    val str = utils.extractStringValue(literal)
-                    if (str == fullKey || str.contains("{$fullKey}") || str.contains("{{$fullKey}}")) {
-                        results.add(literal)
-                    }
-                }
-                true
-            },
-            scope,
-            searchWord,
-            UsageSearchContext.IN_STRINGS,
-            true
-        )
-
-        // 2. Implicit
-        if (keyParts.size > 1) {
-            for (i in 1 until keyParts.size) {
-                val prefix = keyParts.take(i).joinToString(".")
-                val suffix = keyParts.drop(i).joinToString(".")
-                val filename = "$prefix.py"
-                val files = FilenameIndex.getVirtualFilesByName(filename, scope)
-
-                for (f in files) {
-                    val fileScope = GlobalSearchScope.fileScope(project, f)
-                    val suffixSearchWord = keyParts.last()
-
-                    helper.processElementsWithWord(
-                        { element, _ ->
-                            val literal = getParentLiteral(element)
-                            if (literal != null) {
-                                val str = utils.extractStringValue(literal)
-                                if (str == suffix || str.contains("{$suffix}") || str.contains("{{$suffix}}")) {
-                                    results.add(literal)
-                                }
-                            }
-                            true
-                        },
-                        fileScope,
-                        suffixSearchWord,
-                        UsageSearchContext.IN_STRINGS,
-                        true
-                    )
-                }
-            }
-        }
-        // Deduplicate using offset
-        return results.distinctBy { it.textRange.startOffset }
-    }
 }
+
