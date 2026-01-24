@@ -40,13 +40,20 @@
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
-    <depends>com.intellij.modules.compose</depends>
 
-    <depends>org.jetbrains.plugins.yaml</depends>
-    <depends>Pythonid</depends>
+    <dependencies>
+        <plugin id="org.jetbrains.plugins.yaml"/>
+        <plugin id="com.intellij.modules.python-core-capable"/>
+        <module name="intellij.platform.compose"/>
+    </dependencies>
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <postStartupActivity implementation="me.geckotv.ezcordutils.startup.PyCharmCheckStartupActivity"/>
+
+        <notificationGroup id="EzCord Utils Notifications"
+                           displayType="STICKY_BALLOON"/>
+
         <!-- Live Templates -->
         <defaultLiveTemplates file="/liveTemplates/discord.py.xml"/>
         <defaultLiveTemplates file="/liveTemplates/py-cord.xml"/>

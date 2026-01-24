@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "me.geckotv"
-version = "1.0.4"
+version = "1.0.5"
 
 repositories {
     mavenCentral()
@@ -31,7 +31,6 @@ dependencies {
         composeUI()
 
         bundledPlugin("org.jetbrains.plugins.yaml")
-        bundledPlugin("Pythonid")
     }
 }
 
@@ -43,6 +42,12 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h3>Version 1.0.5 - Optimizing some stuff 🫡</h3>
+            <ul>
+                <li><b>Performance Improvements</b> - Improved performance when working with large projects</li>
+                <li><b>PYCHARM SUPPORT 🎉🎉🎉</b> - The plugin is now fully compatible with <b>ALL</b> JetBrains IDEs including PyCharm!</li>
+            </ul>
+            
             <h3>Version 1.0.4 - Yaml to Usage ✨</h3>
             <ul>
                 <li><b>Yaml to usage</b> - With this feature, you can now see what language keys are being used in your code directly from the YAML language files.</li>
