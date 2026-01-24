@@ -4,6 +4,7 @@ import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProvider
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.editor.markup.GutterIconRenderer
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -23,7 +24,6 @@ import me.geckotv.ezcordutils.utils.LanguageUtils
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLMapping
 import java.awt.event.MouseEvent
-import com.intellij.openapi.module.Module
 
 
 class LanguageKeyToUsageMarker : LineMarkerProvider {
@@ -44,20 +44,27 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
         for (element in elements) {
             val fullKey = getKeyIfValid(element) ?: continue
 
-            val hasUsage = cacheService.hasUsage(fullKey) {
+            val status = cacheService.getUsageStatus(fullKey) {
                 // Compute with file tracking
-                val (found, file) = hasAnyUsageWithFile(project, fullKey)
+                val (computedStatus, files) = hasAnyUsageWithFiles(project, fullKey)
                 // Update cache with file info for smart invalidation
-                cacheService.updateCacheWithFileInfo(fullKey, found, file)
-                found
+                cacheService.updateCacheWithFileInfo(fullKey, computedStatus, files)
+                computedStatus
             }
 
-            if (hasUsage) {
+            if (status.isUsed()) {
+                // Use different icon for multiple usages
+                val icon = if (status == LanguageKeyCacheService.UsageStatus.MULTIPLE) {
+                    AllIcons.General.Show_to_implement
+                } else {
+                    AllIcons.Gutter.ImplementingMethod
+                }
+
                 result.add(
                     LineMarkerInfo(
                         element,
                         element.textRange,
-                        AllIcons.Gutter.ImplementingMethod,
+                        icon,
                         { "Find usages of '$fullKey'" },
                         { e, _ -> showUsages(e, project, fullKey) },
                         GutterIconRenderer.Alignment.RIGHT,
@@ -113,36 +120,37 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
     }
 
     /**
-     * Checks if there is at least one usage of the key in the project.
-     * Returns pair of (hasUsage, fileWhereFound) for smart cache invalidation.
+     * Checks usage count of the key in the project.
+     * Returns a pair of (UsageStatus, Set<FilePath>) for smart cache invalidation.
      */
-    private fun hasAnyUsageWithFile(project: Project, fullKey: String): Pair<Boolean, com.intellij.openapi.vfs.VirtualFile?> {
-        var foundFile: com.intellij.openapi.vfs.VirtualFile? = null
+    private fun hasAnyUsageWithFiles(
+        project: Project,
+        fullKey: String
+    ): Pair<LanguageKeyCacheService.UsageStatus, Set<String>> {
+        val foundFiles = mutableSetOf<String>()
+        val foundElements = mutableSetOf<PsiElement>()
+        var usageCount = 0
 
-        val found = run {
-            var hasUsage = false
-            processKeyUsages(project, fullKey) { element ->
-                hasUsage = true
-                foundFile = element.containingFile.virtualFile
-                false // Stop searching
+        processKeyUsages(project, fullKey) { element ->
+            // Deduplicate: same element might be visited twice by search helper
+            if (foundElements.add(element)) {
+                usageCount++
+                val file = element.containingFile.virtualFile
+                if (file != null) {
+                    foundFiles.add(file.path)
+                }
             }
-            hasUsage
+            // Stop searching if we found at least 2 usages (we know it's MULTIPLE)
+            usageCount < 2
         }
 
-        return Pair(found, foundFile)
-    }
-
-    /**
-     * Checks if there is at least one usage of the key in the project.
-     */
-    private fun hasAnyUsage(project: Project, fullKey: String): Boolean {
-        var found = false
-        processKeyUsages(project, fullKey) {
-            found = true
-            false
+        val status = when {
+            usageCount == 0 -> LanguageKeyCacheService.UsageStatus.UNUSED
+            usageCount == 1 -> LanguageKeyCacheService.UsageStatus.SINGLE
+            else -> LanguageKeyCacheService.UsageStatus.MULTIPLE
         }
 
-        return found
+        return Pair(status, foundFiles)
     }
 
     private fun findAllUsages(project: Project, fullKey: String): List<PsiElement> {

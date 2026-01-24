@@ -3,15 +3,15 @@ package me.geckotv.ezcordutils.language
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileEditor.FileDocumentManagerListener
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
-import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.fileEditor.FileDocumentManagerListener
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiManager
 import com.intellij.util.FileContentUtil
 import java.util.concurrent.ConcurrentHashMap
@@ -27,8 +27,16 @@ import java.util.concurrent.ConcurrentHashMap
 @Service(Service.Level.PROJECT)
 class LanguageKeyCacheService(private val project: Project) {
 
+    enum class UsageStatus {
+        UNUSED,
+        SINGLE,
+        MULTIPLE;
+
+        fun isUsed(): Boolean = this != UNUSED
+    }
+
     private data class CacheEntry(
-        val hasUsage: Boolean,
+        val status: UsageStatus,
         val timestamp: Long,
         val foundInFiles: Set<String> = emptySet()
     )
@@ -51,39 +59,37 @@ class LanguageKeyCacheService(private val project: Project) {
     }
 
     /**
-     * Gets whether a language key has any usages.
+     * Gets the usage status of a language key.
      * Returns cached result if available, otherwise computes and caches.
      */
-    fun hasUsage(key: String, computeUsage: () -> Boolean): Boolean {
+    fun getUsageStatus(key: String, computeStatus: () -> UsageStatus): UsageStatus {
         val cached = usageCache[key]
 
         if (cached != null) {
-            return cached.hasUsage
+            return cached.status
         }
 
-        val hasUsageResult = ApplicationManager.getApplication().runReadAction<Boolean> {
-            computeUsage()
+        val statusResult = ApplicationManager.getApplication().runReadAction<UsageStatus> {
+            computeStatus()
         }
 
-        usageCache[key] = CacheEntry(hasUsageResult, System.currentTimeMillis())
+        usageCache[key] = CacheEntry(statusResult, System.currentTimeMillis())
 
-        return hasUsageResult
+        return statusResult
     }
 
     /**
-     * Updates the cache entry for a key and tracks which file it was found in.
+     * Updates the cache entry for a key and tracks which files it was found in.
      */
-    fun updateCacheWithFileInfo(key: String, hasUsage: Boolean, file: VirtualFile?) {
-        val foundFiles = if (hasUsage && file != null) {
-            setOf(file.path)
-        } else {
-            emptySet()
-        }
+    fun updateCacheWithFileInfo(key: String, status: UsageStatus, files: Set<String>) {
+        val foundFiles = if (status.isUsed()) files else emptySet()
 
-        usageCache[key] = CacheEntry(hasUsage, System.currentTimeMillis(), foundFiles)
+        usageCache[key] = CacheEntry(status, System.currentTimeMillis(), foundFiles)
 
-        if (file != null && hasUsage) {
-            fileToKeysIndex.getOrPut(file.path) { ConcurrentHashMap.newKeySet() }.add(key)
+        if (status.isUsed()) {
+            files.forEach { filePath ->
+                fileToKeysIndex.getOrPut(filePath) { ConcurrentHashMap.newKeySet() }.add(key)
+            }
         }
     }
 
@@ -91,7 +97,8 @@ class LanguageKeyCacheService(private val project: Project) {
      * Invalidates only the keys that might be affected by a file change.
      * This is MUCH faster than invalidating the entire cache!
      */
-    private fun invalidateKeysInFile(filePath: String) {
+    private fun invalidateKeysInFile(file: VirtualFile) {
+        val filePath = file.path
         val keysToInvalidate = mutableSetOf<String>()
 
         // 1. Keys previously found in this file (they might have been removed)
@@ -101,10 +108,26 @@ class LanguageKeyCacheService(private val project: Project) {
             fileToKeysIndex.remove(filePath)
         }
 
-        // 2. Keys that are currently cached as "unused"
-        usageCache.forEach { (key, entry) ->
-            if (!entry.hasUsage) {
-                keysToInvalidate.add(key)
+        // 2. Read file content to find NEW usages
+        // This is crucial for:
+        // - UNUSED -> SINGLE (New usage)
+        // - SINGLE -> MULTIPLE (Usage added in a second file)
+        // - MULTIPLE -> Still MULTIPLE (Usage added in third file)
+        val fileContent = try {
+            String(file.contentsToByteArray())
+        } catch (_: Exception) {
+            ""
+        }
+
+        // Check ALL keys against content if they are not already invalidated
+        // We include MULTIPLE here because added usages might trigger re-evaluation or file-tracking update
+        usageCache.forEach { (key, _) ->
+            if (!keysToInvalidate.contains(key)) {
+                // If the file contains the key string, we invalidate it
+                // This ensures we capture new usages in this file for any key
+                if (fileContent.contains(key)) {
+                    keysToInvalidate.add(key)
+                }
             }
         }
 
@@ -166,8 +189,9 @@ class LanguageKeyCacheService(private val project: Project) {
                         val file = event.file
                         when (file.extension) {
                             "py" -> {
-                                invalidateKeysInFile(file.path)
+                                invalidateKeysInFile(file)
                             }
+
                             "yml", "yaml" -> {
                                 invalidateCache()
                             }
@@ -185,8 +209,9 @@ class LanguageKeyCacheService(private val project: Project) {
                     val file = FileDocumentManager.getInstance().getFile(document)
                     when (file?.extension) {
                         "py" -> {
-                            invalidateKeysInFile(file.path)
+                            invalidateKeysInFile(file)
                         }
+
                         "yml", "yaml" -> {
                             invalidateCache()
                         }
