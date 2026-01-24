@@ -5,8 +5,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.PsiTreeUtil
-import com.jetbrains.python.psi.PyStringLiteralExpression
 import me.geckotv.ezcordutils.settings.EzCordSettings
 import me.geckotv.ezcordutils.utils.LanguageUtils
 
@@ -27,18 +25,22 @@ class LanguageDocumentationProvider : AbstractDocumentationProvider() {
 
     override fun generateDoc(element: PsiElement?, originalElement: PsiElement?): String? {
         val pyString = when {
-            element is PyStringLiteralExpression -> element
-            originalElement is PyStringLiteralExpression -> originalElement
+            isPyString(element) -> element
+            isPyString(originalElement) -> originalElement
             else -> {
                 return null
             }
         }
 
+        if (pyString == null) return null
+
         val utils = LanguageUtils()
         val stringValue = utils.extractStringValue(pyString)
         if (!utils.isValidLanguageKey(stringValue)) return null
 
-        val resolver = LanguageResolver(pyString.project)
+        val project = pyString.project
+
+        val resolver = LanguageResolver(project)
         val filePrefix = utils.getFilePrefix(pyString.containingFile.name)
 
         // Use utility function to find all keys
@@ -63,10 +65,10 @@ class LanguageDocumentationProvider : AbstractDocumentationProvider() {
 
         if (translations.size == 1) {
             val (singleKey, singleTranslationInfo) = translations.entries.first()
-            return buildDocumentation(pyString.project, singleKey, singleTranslationInfo)
+            return buildDocumentation(project, singleKey, singleTranslationInfo)
         }
 
-        return buildMultiDocumentation(pyString.project, translations)
+        return buildMultiDocumentation(project, translations)
     }
 
 
@@ -77,8 +79,22 @@ class LanguageDocumentationProvider : AbstractDocumentationProvider() {
         targetOffset: Int
     ): PsiElement? {
         if (contextElement == null) return null
-        return PsiTreeUtil.getParentOfType(contextElement, PyStringLiteralExpression::class.java, false)
+        var parent = contextElement
+        while (parent != null) {
+            if (isPyString(parent)) {
+                return parent
+            }
+            parent = parent.parent
+            if (parent is PsiFile) break
+        }
+        return null
     }
+
+    private fun isPyString(element: PsiElement?): Boolean {
+        if (element == null) return false
+        return element::class.java.simpleName.contains("PyStringLiteralExpression")
+    }
+
 
     /**
      * Resolves a language key with fallback mechanism.

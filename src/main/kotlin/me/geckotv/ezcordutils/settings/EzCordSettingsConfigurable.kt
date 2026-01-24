@@ -4,11 +4,7 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
-import com.intellij.ui.components.JBCheckBox
-import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBTextField
-import com.intellij.ui.components.JBTextArea
-import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.*
 import com.intellij.util.ui.FormBuilder
 import java.awt.Dimension
 import javax.swing.JComponent
@@ -55,20 +51,25 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
             toolTipText = "Language to use when a translation is not available in the default language"
         }
 
-        showPopupCheckBox = JBCheckBox("Show popup menu for multiple keys", settings.state.showPopupForMultipleKeys).apply {
-            toolTipText = "When enabled, shows a popup menu to choose between multiple language keys. When disabled, jumps directly to the first key."
-        }
+        showPopupCheckBox =
+            JBCheckBox("Show popup menu for multiple keys", settings.state.showPopupForMultipleKeys).apply {
+                toolTipText =
+                    "When enabled, shows a popup menu to choose between multiple language keys. When disabled, jumps directly to the first key."
+            }
 
-        autoCompleteEverythingCheckBox = JBCheckBox("Autocomplete everything", settings.state.autoCompleteEverything).apply {
-            toolTipText = "When enabled, provides autocomplete suggestions for all language keys. When disabled, only shows keys matching the current file prefix and general keys."
-        }
+        autoCompleteEverythingCheckBox =
+            JBCheckBox("Autocomplete everything", settings.state.autoCompleteEverything).apply {
+                toolTipText =
+                    "When enabled, provides autocomplete suggestions for all language keys. When disabled, only shows keys matching the current file prefix and general keys."
+            }
 
         excludedLanguageFilesArea = JBTextArea().apply {
             text = settings.state.excludedLanguageFiles.joinToString("\n")
             rows = 3
             lineWrap = true
             wrapStyleWord = true
-            toolTipText = "Enter language file names to exclude from translation checks (one per line, without .yml/.yaml extension). E.g., 'oracle', 'custom_system'"
+            toolTipText =
+                "Enter language file names to exclude from translation checks (one per line, without .yml/.yaml extension). E.g., 'oracle', 'custom_system'"
         }
         val scrollPane = JBScrollPane(excludedLanguageFilesArea).apply {
             preferredSize = Dimension(300, 60)
@@ -93,11 +94,11 @@ class EzCordSettingsConfigurable(private val project: Project) : Configurable {
             ?.toMutableList() ?: mutableListOf()
 
         return languageFolderField?.text != settings.state.languageFolderPath ||
-               defaultLanguageField?.text != settings.state.defaultLanguage ||
-               preferredFallbackLanguageField?.text != settings.state.preferredFallbackLanguage ||
-               showPopupCheckBox?.isSelected != settings.state.showPopupForMultipleKeys ||
-               autoCompleteEverythingCheckBox?.isSelected != settings.state.autoCompleteEverything ||
-               currentExcludedFiles != settings.state.excludedLanguageFiles
+                defaultLanguageField?.text != settings.state.defaultLanguage ||
+                preferredFallbackLanguageField?.text != settings.state.preferredFallbackLanguage ||
+                showPopupCheckBox?.isSelected != settings.state.showPopupForMultipleKeys ||
+                autoCompleteEverythingCheckBox?.isSelected != settings.state.autoCompleteEverything ||
+                currentExcludedFiles != settings.state.excludedLanguageFiles
     }
 
     override fun apply() {

@@ -43,7 +43,7 @@
     <depends>com.intellij.modules.compose</depends>
 
     <depends>org.jetbrains.plugins.yaml</depends>
-    <depends>PythonCore</depends>
+    <depends>Pythonid</depends>
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">

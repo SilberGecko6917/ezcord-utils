@@ -15,6 +15,9 @@ repositories {
     intellijPlatform {
         defaultRepositories()
     }
+    maven("https://packages.jetbrains.team/maven/p/kds/kotlin-ds-maven")
+    maven("https://www.jetbrains.com/intellij-repository/releases")
+    maven("https://cache-redirector.jetbrains.com/intellij-dependencies")
 }
 
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
@@ -28,7 +31,7 @@ dependencies {
         composeUI()
 
         bundledPlugin("org.jetbrains.plugins.yaml")
-        bundledPlugin("PythonCore")
+        bundledPlugin("Pythonid")
     }
 }
 

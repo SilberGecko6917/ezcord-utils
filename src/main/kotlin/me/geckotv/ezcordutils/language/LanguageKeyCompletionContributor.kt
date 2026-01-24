@@ -4,7 +4,6 @@ import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.util.ProcessingContext
-import com.jetbrains.python.psi.PyStringLiteralExpression
 import me.geckotv.ezcordutils.settings.EzCordSettings
 import me.geckotv.ezcordutils.utils.LanguageUtils
 
@@ -16,7 +15,7 @@ class LanguageKeyCompletionContributor : CompletionContributor() {
     init {
         extend(
             CompletionType.BASIC,
-            PlatformPatterns.psiElement().inside(PyStringLiteralExpression::class.java),
+            PlatformPatterns.psiElement(),
             LanguageKeyCompletionProvider()
         )
     }
@@ -29,6 +28,15 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
         context: ProcessingContext,
         result: CompletionResultSet
     ) {
+        val element = parameters.position
+        val parent = element.parent
+        val isStringLiteral = parent?.javaClass?.simpleName?.contains("PyStringLiteralExpression") == true ||
+                parent?.parent?.javaClass?.simpleName?.contains("PyStringLiteralExpression") == true
+
+        if (!isStringLiteral) {
+            return
+        }
+
         val project = parameters.position.project
         val file = parameters.originalFile
         val settings = EzCordSettings.getInstance(project)
@@ -82,4 +90,3 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
         }
     }
 }
-

@@ -18,7 +18,6 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.PsiSearchHelper
 import com.intellij.psi.search.UsageSearchContext
 import com.intellij.ui.awt.RelativePoint
-import com.jetbrains.python.psi.PyStringLiteralExpression
 import me.geckotv.ezcordutils.settings.EzCordSettings
 import me.geckotv.ezcordutils.utils.LanguageUtils
 import org.jetbrains.yaml.psi.YAMLKeyValue
@@ -257,10 +256,10 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
         return true
     }
 
-    private fun getParentLiteral(element: PsiElement): PyStringLiteralExpression? {
+    private fun getParentLiteral(element: PsiElement): PsiElement? {
         var current: PsiElement? = element
         while (current != null) {
-            if (current is PyStringLiteralExpression) return current
+            if (current.javaClass.simpleName.contains("PyStringLiteralExpression")) return current
             if (current is PsiFile) return null
             current = current.parent
         }

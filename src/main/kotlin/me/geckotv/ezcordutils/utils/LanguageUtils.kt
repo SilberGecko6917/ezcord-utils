@@ -3,17 +3,17 @@ package me.geckotv.ezcordutils.utils
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.jetbrains.python.psi.PyStringLiteralExpression
+import com.intellij.psi.PsiElement
 import me.geckotv.ezcordutils.language.LanguageKeyLocation
 import me.geckotv.ezcordutils.language.LanguageResolver
 
 class LanguageUtils {
     /**
-     * Extracts the string value from a PyStringLiteralExpression.
-     * Uses stable PSI API by removing quotes from text property.
+     * Extracts the string value from a PsiElement (expected to be a string literal).
+     * Uses generic PSI API by removing quotes from text property.
      */
-    fun extractStringValue(pyString: PyStringLiteralExpression): String {
-        var text = pyString.text.trim()
+    fun extractStringValue(element: PsiElement): String {
+        var text = element.text.trim()
         val firstQuote = text.firstOrNull { it == '"' || it == '\'' } ?: return text
         val firstQuoteIndex = text.indexOf(firstQuote)
 
