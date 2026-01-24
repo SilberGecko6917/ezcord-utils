@@ -6,8 +6,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import me.geckotv.ezcordutils.settings.EzCordSettings
 import org.jetbrains.yaml.psi.YAMLFile
-import org.jetbrains.yaml.psi.YAMLMapping
 import org.jetbrains.yaml.psi.YAMLKeyValue
+import org.jetbrains.yaml.psi.YAMLMapping
 
 /**
  * Contains information about a language key location.
@@ -93,7 +93,8 @@ class LanguageResolver(val project: Project) {
         langDir.children.forEach { file ->
             if ((file.extension == "yml" || file.extension == "yaml") &&
                 file.nameWithoutExtension != preferredFallback &&
-                !excludedFiles.contains(file.nameWithoutExtension)) {
+                !excludedFiles.contains(file.nameWithoutExtension)
+            ) {
                 val location = getKeyLocationFromFile(file, key)
                 if (location != null) return location
             }
@@ -205,7 +206,8 @@ class LanguageResolver(val project: Project) {
         // Find all .yml and .yaml files
         langDir.children.forEach { file ->
             if ((file.extension == "yml" || file.extension == "yaml") &&
-                !excludedFiles.contains(file.nameWithoutExtension)) {
+                !excludedFiles.contains(file.nameWithoutExtension)
+            ) {
                 val langCode = file.nameWithoutExtension
                 val translation = resolveKeyFromFile(file, key)
 
@@ -258,7 +260,8 @@ class LanguageResolver(val project: Project) {
         // Find all .yml and .yaml files
         langDir.children.forEach { file ->
             if ((file.extension == "yml" || file.extension == "yaml") &&
-                !excludedFiles.contains(file.nameWithoutExtension)) {
+                !excludedFiles.contains(file.nameWithoutExtension)
+            ) {
                 val keys = extractKeysFromFile(file)
                 allKeys.addAll(keys)
             }

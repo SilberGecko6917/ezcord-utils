@@ -52,11 +52,13 @@ class LanguageKeyLineMarkerProvider : LineMarkerProvider {
                 "Navigate to language key: ${foundKeys[0].first}$fallbackWarning"
             } else {
                 val fallbackWarning = if (hasFallbackOnly) " ⚠️ (some keys are fallback only)" else ""
-                "Navigate to language keys (click to choose):\n${foundKeys.joinToString("\n") { (key, _) ->
-                    val isFallback = !resolver.existsInPrimaryLanguage(key)
-                    val marker = if (isFallback) " ⚠️" else ""
-                    "  • $key$marker"
-                }}$fallbackWarning"
+                "Navigate to language keys (click to choose):\n${
+                    foundKeys.joinToString("\n") { (key, _) ->
+                        val isFallback = !resolver.existsInPrimaryLanguage(key)
+                        val marker = if (isFallback) " ⚠️" else ""
+                        "  • $key$marker"
+                    }
+                }$fallbackWarning"
             }
 
             return LineMarkerInfo(

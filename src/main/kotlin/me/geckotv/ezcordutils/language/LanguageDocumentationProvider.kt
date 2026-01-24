@@ -7,8 +7,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.python.psi.PyStringLiteralExpression
-import me.geckotv.ezcordutils.utils.LanguageUtils
 import me.geckotv.ezcordutils.settings.EzCordSettings
+import me.geckotv.ezcordutils.utils.LanguageUtils
 
 /**
  * Contains translation information including fallback details.
@@ -29,7 +29,9 @@ class LanguageDocumentationProvider : AbstractDocumentationProvider() {
         val pyString = when {
             element is PyStringLiteralExpression -> element
             originalElement is PyStringLiteralExpression -> originalElement
-            else -> { return null }
+            else -> {
+                return null
+            }
         }
 
         val utils = LanguageUtils()

@@ -1,12 +1,8 @@
 package me.geckotv.ezcordutils.language
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-    import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,7 +19,8 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import me.geckotv.ezcordutils.settings.EzCordSettings
 import me.geckotv.ezcordutils.utils.LanguageUtils
 import org.jetbrains.jewel.bridge.addComposeTab
-import org.jetbrains.jewel.ui.component.*
+import org.jetbrains.jewel.ui.component.IconButton
+import org.jetbrains.jewel.ui.component.Text
 
 // Data classes
 /**
@@ -126,7 +123,9 @@ private fun LanguageKeyContent(project: Project, state: State<TranslationState>)
                     DetailedKeyView(
                         project = project,
                         keyInfo = keyInfo,
-                        onBack = { updateState?.value = currentState.copy(showDetailedView = false, selectedKey = null) }
+                        onBack = {
+                            updateState?.value = currentState.copy(showDetailedView = false, selectedKey = null)
+                        }
                     )
                 }
             } else {
@@ -279,7 +278,7 @@ private fun KeyOverviewRow(
 
     // Check if ANY language is missing a translation (not just primary)
     val hasMissingTranslations = keyInfo.translations.isEmpty() ||
-        allLanguages.any { lang -> !keyInfo.translations.containsKey(lang) }
+            allLanguages.any { lang -> !keyInfo.translations.containsKey(lang) }
 
     Row(
         Modifier
@@ -507,10 +506,15 @@ private fun setupLiveUpdates(project: Project) {
     )
 }
 
-private fun setupYamlDocumentListener(project: Project, yamlFile: VirtualFile, parentConnection: com.intellij.util.messages.MessageBusConnection) {
+private fun setupYamlDocumentListener(
+    project: Project,
+    yamlFile: VirtualFile,
+    parentConnection: com.intellij.util.messages.MessageBusConnection
+) {
     ApplicationManager.getApplication().runReadAction {
         val psiFile = com.intellij.psi.PsiManager.getInstance(project).findFile(yamlFile) ?: return@runReadAction
-        val document = com.intellij.psi.PsiDocumentManager.getInstance(project).getDocument(psiFile) ?: return@runReadAction
+        val document =
+            com.intellij.psi.PsiDocumentManager.getInstance(project).getDocument(psiFile) ?: return@runReadAction
 
         // Use EditorFactory to listen for document changes
         val editorFactory = com.intellij.openapi.editor.EditorFactory.getInstance()
@@ -557,57 +561,58 @@ fun loadFileKeys(project: Project, file: VirtualFile) {
             val resolver = LanguageResolver(project)
 
             // Run all read operations in read action
-            val (keyInfoList, generalKeyInfoList) = ApplicationManager.getApplication().runReadAction<Pair<List<KeyInfo>, List<KeyInfo>>> {
-                val allKeys = resolver.getAllKeys()
+            val (keyInfoList, generalKeyInfoList) = ApplicationManager.getApplication()
+                .runReadAction<Pair<List<KeyInfo>, List<KeyInfo>>> {
+                    val allKeys = resolver.getAllKeys()
 
-                // File-specific keys
-                val relevantKeys = allKeys.filter { it.startsWith("$filePrefix.") }
+                    // File-specific keys
+                    val relevantKeys = allKeys.filter { it.startsWith("$filePrefix.") }
 
-                // General keys
-                val generalKeys = allKeys.filter { it.startsWith("general.") }
+                    // General keys
+                    val generalKeys = allKeys.filter { it.startsWith("general.") }
 
-                // Build KeyInfo list for file keys
-                val fileKeys = relevantKeys.map { fullKey ->
-                    val allTranslations = resolver.resolveAllLanguages(fullKey)
-                    val translationMap = mutableMapOf<String, LanguageTranslation>()
+                    // Build KeyInfo list for file keys
+                    val fileKeys = relevantKeys.map { fullKey ->
+                        val allTranslations = resolver.resolveAllLanguages(fullKey)
+                        val translationMap = mutableMapOf<String, LanguageTranslation>()
 
-                    allTranslations.forEach { (language, value) ->
-                        val location = resolver.getKeyLocationForLanguage(fullKey, language)
-                        translationMap[language] = LanguageTranslation(
-                            value = value,
-                            file = location?.file,
-                            lineNumber = location?.lineNumber ?: 0
+                        allTranslations.forEach { (language, value) ->
+                            val location = resolver.getKeyLocationForLanguage(fullKey, language)
+                            translationMap[language] = LanguageTranslation(
+                                value = value,
+                                file = location?.file,
+                                lineNumber = location?.lineNumber ?: 0
+                            )
+                        }
+
+                        KeyInfo(
+                            key = fullKey,
+                            translations = translationMap
                         )
                     }
 
-                    KeyInfo(
-                        key = fullKey,
-                        translations = translationMap
-                    )
-                }
+                    // Build KeyInfo list for general keys
+                    val genKeys = generalKeys.map { fullKey ->
+                        val allTranslations = resolver.resolveAllLanguages(fullKey)
+                        val translationMap = mutableMapOf<String, LanguageTranslation>()
 
-                // Build KeyInfo list for general keys
-                val genKeys = generalKeys.map { fullKey ->
-                    val allTranslations = resolver.resolveAllLanguages(fullKey)
-                    val translationMap = mutableMapOf<String, LanguageTranslation>()
+                        allTranslations.forEach { (language, value) ->
+                            val location = resolver.getKeyLocationForLanguage(fullKey, language)
+                            translationMap[language] = LanguageTranslation(
+                                value = value,
+                                file = location?.file,
+                                lineNumber = location?.lineNumber ?: 0
+                            )
+                        }
 
-                    allTranslations.forEach { (language, value) ->
-                        val location = resolver.getKeyLocationForLanguage(fullKey, language)
-                        translationMap[language] = LanguageTranslation(
-                            value = value,
-                            file = location?.file,
-                            lineNumber = location?.lineNumber ?: 0
+                        KeyInfo(
+                            key = fullKey,
+                            translations = translationMap
                         )
                     }
 
-                    KeyInfo(
-                        key = fullKey,
-                        translations = translationMap
-                    )
+                    Pair(fileKeys, genKeys)
                 }
-
-                Pair(fileKeys, genKeys)
-            }
 
             // Update UI on EDT
             ApplicationManager.getApplication().invokeLater {
