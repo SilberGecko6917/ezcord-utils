@@ -143,9 +143,9 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
             usageCount < 2
         }
 
-        val status = when {
-            usageCount == 0 -> LanguageKeyCacheService.UsageStatus.UNUSED
-            usageCount == 1 -> LanguageKeyCacheService.UsageStatus.SINGLE
+        val status = when (usageCount) {
+            0 -> LanguageKeyCacheService.UsageStatus.UNUSED
+            1 -> LanguageKeyCacheService.UsageStatus.SINGLE
             else -> LanguageKeyCacheService.UsageStatus.MULTIPLE
         }
 
