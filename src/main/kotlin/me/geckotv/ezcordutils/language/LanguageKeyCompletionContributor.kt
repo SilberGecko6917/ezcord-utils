@@ -37,6 +37,26 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
             return
         }
 
+        val currentOffset = parameters.offset
+        val elementText = element.text
+        val elementStart = element.textRange.startOffset
+        val relativeOffset = currentOffset - elementStart
+
+        var prefix = ""
+        if (relativeOffset >= 0 && relativeOffset <= elementText.length) {
+            var start = relativeOffset
+            while (start > 0) {
+                val char = elementText[start - 1]
+                if (!char.isLetterOrDigit() && char != '.' && char != '_') {
+                    break
+                }
+                start--
+            }
+            prefix = elementText.substring(start, relativeOffset)
+        }
+
+        val newResult = result.withPrefixMatcher(prefix)
+
         val project = parameters.position.project
         val file = parameters.originalFile
         val settings = EzCordSettings.getInstance(project)
@@ -65,17 +85,17 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
                 val lookupElement = LookupElementBuilder.create(fullKey)
                     .withTypeText(translation ?: "⚠️ Not Translated yet", true)
                     .bold()
-                result.addElement(lookupElement)
+                newResult.addElement(lookupElement)
             } else if (filePrefix != null && fullKey.startsWith("$filePrefix.")) {
                 val shortKey = fullKey.removePrefix("$filePrefix.")
 
-                result.addElement(
+                newResult.addElement(
                     LookupElementBuilder.create(shortKey)
                         .withTypeText(translation ?: "⚠️ Not Translated yet", true)
                         .bold()
                 )
 
-                result.addElement(
+                newResult.addElement(
                     LookupElementBuilder.create(fullKey)
                         .withTypeText(translation ?: "⚠️ Not Translated yet", true)
                         .bold()
@@ -85,7 +105,7 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
                 val lookupElement = LookupElementBuilder.create(fullKey)
                     .withTypeText(translation ?: "⚠️ Not Translated yet", true)
                     .bold()
-                result.addElement(lookupElement)
+                newResult.addElement(lookupElement)
             }
         }
     }
