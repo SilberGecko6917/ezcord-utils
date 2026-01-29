@@ -17,14 +17,39 @@ import java.awt.event.MouseEvent
 class LanguageKeyLineMarkerProvider : LineMarkerProvider {
 
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
-        // Only process leaf elements (first child) of Python string literals for performance
+        // Only process leaf elements (first child is null)
+        if (element.firstChild != null) return null
+
         val parent = element.parent ?: return null
-        val isPyString = parent.javaClass.simpleName.contains("PyStringLiteralExpression")
-        if (!isPyString) return null
-        if (parent.firstChild != element) return null  // Only register on the first leaf child
+        var targetElement: PsiElement? = null
+
+        // helper to check class name safely
+        fun isType(elem: PsiElement, typeShortName: String): Boolean {
+            return elem.javaClass.simpleName.contains(typeShortName)
+        }
+
+        // Case 1: Standard String Literal
+        // Structure: PyStringLiteralExpression -> [Leaf: "string"]
+        if (isType(parent, "PyStringLiteralExpression")) {
+            if (parent.firstChild == element) {
+                targetElement = parent
+            }
+        }
+        // Case 2: Formatted String (f-string)
+        // Structure: PyStringLiteralExpression -> PyFormattedStringElement -> [Leaf: "f" or "f'"]
+        else if (isType(parent, "PyFormattedStringElement")) {
+            if (parent.firstChild == element) {
+                val grandParent = parent.parent
+                if (grandParent != null && isType(grandParent, "PyStringLiteralExpression")) {
+                    targetElement = parent
+                }
+            }
+        }
+
+        if (targetElement == null) return null
 
         val utils = LanguageUtils()
-        val stringValue = utils.extractStringValue(parent)
+        val stringValue = utils.extractStringValue(targetElement)
         if (!utils.isValidLanguageKey(stringValue)) return null
 
 

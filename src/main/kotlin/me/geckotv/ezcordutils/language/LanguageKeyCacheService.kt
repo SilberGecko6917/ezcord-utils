@@ -16,6 +16,14 @@ import com.intellij.psi.PsiManager
 import com.intellij.util.FileContentUtil
 import java.util.concurrent.ConcurrentHashMap
 
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.util.Alarm
+import me.geckotv.ezcordutils.utils.LanguageUtils
+
 /**
  * Service that manages caching for language key usages.
  *
@@ -25,7 +33,11 @@ import java.util.concurrent.ConcurrentHashMap
  * - Dramatically faster than full cache invalidation
  */
 @Service(Service.Level.PROJECT)
-class LanguageKeyCacheService(private val project: Project) {
+class LanguageKeyCacheService(private val project: Project) : Disposable {
+
+    override fun dispose() {
+        // Resources are cleaned up by parent disposable
+    }
 
     enum class UsageStatus {
         UNUSED,
@@ -44,6 +56,8 @@ class LanguageKeyCacheService(private val project: Project) {
     private val usageCache = ConcurrentHashMap<String, CacheEntry>()
 
     private val fileToKeysIndex = ConcurrentHashMap<String, MutableSet<String>>()
+
+    private val debounceAlarm = Alarm(this)
 
     @Volatile
     private var listenerInitialized = false
@@ -96,8 +110,11 @@ class LanguageKeyCacheService(private val project: Project) {
     /**
      * Invalidates only the keys that might be affected by a file change.
      * This is MUCH faster than invalidating the entire cache!
+     *
+     * @param file The file that changed.
+     * @param document Optional document instance. If provided, we use its text (useful for live updates).
      */
-    private fun invalidateKeysInFile(file: VirtualFile) {
+    private fun invalidateKeysInFile(file: VirtualFile, document: Document? = null) {
         val filePath = file.path
         val keysToInvalidate = mutableSetOf<String>()
 
@@ -109,24 +126,28 @@ class LanguageKeyCacheService(private val project: Project) {
         }
 
         // 2. Read file content to find NEW usages
-        // This is crucial for:
-        // - UNUSED -> SINGLE (New usage)
-        // - SINGLE -> MULTIPLE (Usage added in a second file)
-        // - MULTIPLE -> Still MULTIPLE (Usage added in third file)
-        val fileContent = try {
+        val fileContent = document?.text ?: try {
             String(file.contentsToByteArray())
         } catch (_: Exception) {
             ""
         }
 
+        val utils = LanguageUtils()
+        val filePrefix = utils.getFilePrefix(file.name)
+
         // Check ALL keys against content if they are not already invalidated
-        // We include MULTIPLE here because added usages might trigger re-evaluation or file-tracking update
         usageCache.forEach { (key, _) ->
             if (!keysToInvalidate.contains(key)) {
-                // If the file contains the key string, we invalidate it
-                // This ensures we capture new usages in this file for any key
+                // Case A: Explicit usage ("prefix.suffix")
                 if (fileContent.contains(key)) {
                     keysToInvalidate.add(key)
+                }
+                // Case B: Implicit usage (in "prefix.py", check for "suffix")
+                else if (filePrefix != null && key.startsWith("$filePrefix.")) {
+                    val suffix = key.substring(filePrefix.length + 1)
+                    if (fileContent.contains(suffix)) {
+                        keysToInvalidate.add(key)
+                    }
                 }
             }
         }
@@ -209,7 +230,7 @@ class LanguageKeyCacheService(private val project: Project) {
                     val file = FileDocumentManager.getInstance().getFile(document)
                     when (file?.extension) {
                         "py" -> {
-                            invalidateKeysInFile(file)
+                            invalidateKeysInFile(file, document)
                         }
 
                         "yml", "yaml" -> {
@@ -219,5 +240,33 @@ class LanguageKeyCacheService(private val project: Project) {
                 }
             }
         )
+
+        // Listens to typing events and triggers invalidation after a short delay (debounce)
+        EditorFactory.getInstance().eventMulticaster.addDocumentListener(object : DocumentListener {
+            override fun documentChanged(event: DocumentEvent) {
+                val document = event.document
+                val file = FileDocumentManager.getInstance().getFile(document) ?: return
+
+                val ext = file.extension
+                if (ext != "py" && ext != "yml" && ext != "yaml") return
+
+                if (project.isDisposed || !file.isValid) return
+                if (!ProjectFileIndex.getInstance(project).isInContent(file)) return
+
+                // Debounce the update
+                debounceAlarm.cancelAllRequests()
+                debounceAlarm.addRequest({
+                    ApplicationManager.getApplication().runReadAction {
+                        if (project.isDisposed || !file.isValid) return@runReadAction
+
+                        if (ext == "py") {
+                            invalidateKeysInFile(file, document)
+                        } else {
+                            invalidateCache()
+                        }
+                    }
+                }, 2000)
+            }
+        }, this)
     }
 }
